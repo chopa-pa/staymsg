@@ -1497,7 +1497,7 @@ function openDatePicker(){
   _cal.y=today.getFullYear();_cal.m=today.getMonth();
   _cal.ci=document.getElementById('v_checkin').value||null;
   _cal.co=document.getElementById('v_checkout').value||null;
-  _cal.step=_cal.ci?'co':'ci';
+  _cal.step='ci';
   _renderCal();
 }
 function _renderCal(){
