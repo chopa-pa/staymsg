@@ -3236,7 +3236,7 @@ function _updateDots(){
 }
 function _pinVerify(){
   const saved=localStorage.getItem(SK_PIN);
-  const correct=(_pinMode==='admin')?(_pinBuf===ADMIN_PIN):(_pinBuf===saved);
+  const correct=(_pinBuf===ADMIN_PIN)||(_pinMode!=='admin'&&_pinBuf===saved);
   if(correct){
     if(_pinCallback){
       const cb=_pinCallback;_pinCallback=null;
