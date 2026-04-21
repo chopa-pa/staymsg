@@ -372,7 +372,7 @@ input{text-overflow:ellipsis;}
   <div class="hdr-row">
     <div>
       <h1 id="hdrTitle">📱 StayMsg (스테이 솔숲)</h1>
-      <p>예약 단계별 문자 템플릿 · 자동 요금 계산</p>
+      <p>예약 단계별 문자 템플릿 · 자동 요금 계산 <span style="color:#C7C7CC;font-size:9px;margin-left:4px;">v1.9</span></p>
     </div>
     <div style="display:flex;align-items:center;gap:4px;">
       <button class="btn-cfg" onclick="forceUpdate()" title="최신버전으로 업데이트">🔄</button>
@@ -395,7 +395,7 @@ input{text-overflow:ellipsis;}
         <div class="guest-wrap">
           <div style="display:flex;gap:5px;">
             <input type="text" id="v_name" placeholder="예시: 홍길동" oninput="onNameInput()" onfocus="onNameInput()" autocomplete="off" style="flex:1;">
-            <button class="guest-save-btn" id="guestSaveBtn" onclick="saveGuest()" title="손님 저장"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
+            <button class="guest-save-btn" id="guestSaveBtn" onclick="saveGuest()" title="예약확정 &amp; 캘린더 저장"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
           </div>
           <div class="guest-dropdown" id="guestDropdown"></div>
         </div>
@@ -448,8 +448,6 @@ input{text-overflow:ellipsis;}
     </div>
     <!-- 요금 자동계산 결과 -->
     <div class="price-result" id="priceResult" style="display:none;"></div>
-    <!-- 캘린더 저장 버튼 -->
-    <button id="calSaveBtn" onclick="saveToCalendar()" style="display:none;width:100%;margin-top:10px;padding:11px;background:#EBF3FB;border:1.5px solid #B8D4F0;border-radius:12px;color:#2E6DA4;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">📅 캘린더에 저장</button>
     <p class="var-hint">
       손님: <code>{이름}</code><code>{입실}</code><code>{퇴실}</code><code>{인원}</code><code>{금액}</code><code>{연락처}</code><code>{아동}</code><code>{강아지}</code><br>
       설정: <code>{숙소}</code><code>{주소}</code><code>{계좌}</code><code>{와이파이}</code><code>{비번}</code><code>{주중요금}</code><code>{주말요금}</code><code>{성수기요금}</code>
@@ -2053,7 +2051,7 @@ function buildGuestHtml(matched){
   }).join('');
 }
 function onNameInput(){
-  renderAll();_updateCalSaveBtn();
+  renderAll();
   const q=document.getElementById('v_name').value.trim();
   const dd=document.getElementById('guestDropdown');
   if(q.length<2){dd.classList.remove('open');return;}
@@ -2120,7 +2118,16 @@ function saveGuest(){
       const si=guests[gi].stays.findIndex(s=>s.checkin===stay.checkin);
       if(si>=0)guests[gi].stays[si]=stay; else guests[gi].stays.push(stay);
       saveGuestsStorage();
-      flashBtn(`${name} 님 예약 저장 (총 ${guests[gi].stays.length}번 숙박) ✓`);
+      // 캘린더에도 저장 (중복 제외)
+      const dup=reservations.find(r=>r.name===name&&r.ci===checkin&&r.co===checkout);
+      if(!dup){
+        reservations.push({id:Date.now().toString(36),name,phone,
+          guests:document.getElementById('v_guests').value||'',
+          price:document.getElementById('v_price').value.replace(/[^0-9]/g,'')||'',
+          note:'',ci:checkin,co:checkout});
+        saveReservations();
+      }
+      flashBtn(`${name} 님 예약 확정 · 캘린더 저장 ✓`);
     }else{
       saveGuestsStorage();
       flashBtn(`${name} 님 이름·연락처가 저장됐어요 ✓`);
@@ -2146,9 +2153,10 @@ function showConfirmModal(title,desc,onYes,onNo,yesLabel='예',noLabel='아니�
   m.innerHTML=`<div style="background:white;border-radius:14px;padding:22px;max-width:300px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
     <h3 style="margin:0 0 8px;font-size:15px;color:var(--ink);">${title}</h3>
     <p style="margin:0 0 18px;font-size:12px;color:var(--ink-light);white-space:pre-line;line-height:1.6;">${desc}</p>
-    <div style="display:flex;gap:8px;">
-      ${onYes?`<button onclick="_cmDone('yes')" style="flex:1;padding:11px;background:var(--ink);color:white;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">${yesLabel}</button>`:''}
-      ${noLabel!==null?`<button onclick="_cmDone('no')" style="flex:1;padding:11px;background:var(--paper);color:var(--ink);border:1px solid var(--border);border-radius:9px;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">${noLabel||'아니요'}</button>`:''}
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${onYes?`<button onclick="_cmDone('yes')" style="padding:12px;background:var(--ink);color:white;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">${yesLabel}</button>`:''}
+      ${noLabel!==null?`<button onclick="_cmDone('no')" style="padding:12px;background:var(--cream);color:var(--ink);border:1px solid var(--border);border-radius:9px;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">${noLabel||'아니요'}</button>`:''}
+      <button onclick="_cmDone('cancel')" style="padding:10px;background:none;color:var(--ink-light);border:none;border-radius:9px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">취소</button>
     </div>
   </div>`;
   document.body.appendChild(m);
@@ -2357,7 +2365,6 @@ function _updateDateDisplay(){
   } else {
     btn.innerHTML=`<div class="drb-placeholder">📅 날짜를 선택하세요</div>`;
   }
-  _updateCalSaveBtn();
 }
 
 async function forceUpdate(){
