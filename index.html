@@ -860,11 +860,8 @@ input{text-overflow:ellipsis;}
     <div class="set-section" style="margin-top:14px;">
       <div style="padding:14px 16px;">
         <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:12px;">🔒 앱 잠금 비밀번호</div>
-        <div id="pinStatus" style="font-size:12px;color:var(--ink-light);margin-bottom:10px;"></div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-dark" style="flex:1;" onclick="openPinSetup()">비밀번호 설정/변경</button>
-          <button class="btn btn-del" id="pinClearBtn" style="flex:1;" onclick="clearPin()">비밀번호 해제</button>
-        </div>
+        <div style="font-size:12px;color:var(--ink-light);margin-bottom:10px;">관리자 인증 후 비밀번호를 변경할 수 있어요</div>
+        <button class="btn btn-dark" style="width:100%;" onclick="openPinSetup()">비밀번호 변경</button>
       </div>
     </div>
 
@@ -3220,15 +3217,14 @@ if('serviceWorker' in navigator){
 ============================================= */
 const SK_PIN='staymsg_pin';
 const ADMIN_PIN='7063';
+const DEFAULT_PIN='0079';
 let _pinBuf='',_pinMode='unlock',_pinStep=1,_pinNew='',_pinCallback=null;
 
+function _getPin(){return localStorage.getItem(SK_PIN)||DEFAULT_PIN;}
+
 function _initLock(){
-  const pin=localStorage.getItem(SK_PIN);
-  if(pin){
-    document.getElementById('lockScreen').style.display='flex';
-    document.body.style.overflow='hidden';
-  }
-  _updatePinStatus();
+  document.getElementById('lockScreen').style.display='flex';
+  document.body.style.overflow='hidden';
 }
 
 function _pinKey(d){
@@ -3253,8 +3249,8 @@ function _updateDots(){
   }
 }
 function _pinVerify(){
-  const saved=localStorage.getItem(SK_PIN);
-  const correct=(_pinBuf===ADMIN_PIN)||(_pinMode!=='admin'&&_pinBuf===saved);
+  const isAdmin=_pinBuf===ADMIN_PIN;
+  const correct=isAdmin||(_pinMode!=='admin'&&_pinBuf===_getPin());
   if(correct){
     if(_pinCallback){
       const cb=_pinCallback;_pinCallback=null;
@@ -3286,8 +3282,7 @@ function _pinSetStep(){
       _pinMode='unlock';_pinStep=1;_pinNew='';_pinBuf='';
       document.getElementById('lockScreen').style.display='none';
       document.body.style.overflow='';
-      _updatePinStatus();
-      toast('비밀번호가 설정됐어요 🔒');
+      toast('비밀번호가 변경됐어요 🔒');
     } else {
       document.getElementById('lockErr').textContent='숫자가 일치하지 않아요. 다시 시도하세요';
       document.getElementById('lockDots').classList.add('lock-shake');
@@ -3314,25 +3309,6 @@ function openPinSetup(){
   _openPinScreen('관리자 비밀번호를 입력하세요','admin',()=>{
     _openPinScreen('새 비밀번호 4자리를 입력하세요','set');
   });
-}
-function clearPin(){
-  if(!localStorage.getItem(SK_PIN)){toast('설정된 비밀번호가 없어요');return;}
-  closeSettings();
-  _openPinScreen('관리자 비밀번호를 입력하세요','admin',()=>{
-    showConfirmModal('🔓 비밀번호 해제','앱 잠금을 해제할까요?',()=>{
-      localStorage.removeItem(SK_PIN);
-      _updatePinStatus();
-      toast('비밀번호가 해제됐어요');
-    },null,'해제','취소');
-  });
-}
-function _updatePinStatus(){
-  const el=document.getElementById('pinStatus');
-  const btn=document.getElementById('pinClearBtn');
-  if(!el)return;
-  const has=!!localStorage.getItem(SK_PIN);
-  el.textContent=has?'🔒 비밀번호가 설정되어 있어요':'🔓 비밀번호가 설정되지 않았어요';
-  if(btn)btn.style.display=has?'':'none';
 }
 
 _initLock();
