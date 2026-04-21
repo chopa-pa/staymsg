@@ -187,6 +187,12 @@ header p{font-size:10px;color:var(--ink-light);margin-top:2px;}
 .cal-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--ink-light);}
 .cal-legend-swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
 #calLegend .cal-legend{padding:6px 12px 2px;}
+.holi-lbl{color:#EF4444;font-weight:700;}
+.cal-day.holiday>span{color:#EF4444;}
+.cal-day.holiday.cal-sel>span,.cal-day.holiday.cal-range>span{color:inherit;}
+.month-day.holiday .md-num{color:#EF4444;}
+.month-day.holiday.today .md-num-inner{background:#EF4444;color:white;}
+.month-day.holiday.sun .md-num,.month-day.holiday.sat .md-num{color:#EF4444;}
 .is-desktop .date-ico{display:none;}
 .is-mobile .var-grid{grid-template-columns:1fr;}
 .vi-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;grid-column:1/-1;}
@@ -542,6 +548,7 @@ input{text-overflow:ellipsis;}
 
 <!-- ===== PAGE: 예약 캘린더 ===== -->
 <div class="page" id="page-cal">
+  <div id="calRoomSel" class="room-sel" style="padding:4px 0 2px;"></div>
   <div class="cal-ph">
     <button class="cal-ph-nav" onclick="calMonthNav(-1)">‹</button>
     <span class="cal-ph-title" id="calMonthLabel"></span>
@@ -607,6 +614,16 @@ input{text-overflow:ellipsis;}
       <div class="vi" style="margin-top:10px;"><label>메모</label><input type="text" id="res_note" placeholder="특이사항, 요청사항 등"></div>
     </div>
     <input type="hidden" id="res_id">
+    <!-- 날짜 충돌 경고 -->
+    <div id="resConflictBox" style="display:none;background:#FDE8EE;border-radius:14px;padding:14px 16px;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:700;color:#C8002A;margin-bottom:6px;">⚠️ 이 기간에 이미 예약이 있어요</div>
+      <div id="resConflictInfo" style="font-size:12px;color:var(--ink);line-height:1.6;margin-bottom:12px;"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button id="resConflictEditBtn" class="btn btn-dark" style="padding:11px;font-size:13px;">✏️ 기존 예약 수정하기</button>
+        <button id="resConflictDelBtn" class="btn" style="padding:11px;font-size:13px;background:#FFF0F3;color:#C8002A;border:1.5px solid #F5B8C4;">🗑️ 기존 예약 취소 후 저장</button>
+        <button onclick="document.getElementById('resConflictBox').style.display='none'" style="background:none;border:none;font-size:13px;color:var(--ink-light);padding:6px;cursor:pointer;">돌아가기</button>
+      </div>
+    </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-dark" style="flex:1;padding:13px;" onclick="saveRes()">💾 저장</button>
       <button class="btn btn-del" id="resDelBtn" onclick="deleteRes()" style="display:none;padding:13px 18px;">삭제</button>
@@ -1160,6 +1177,10 @@ function getDayType(dateStr){
     }
   }
 
+  const regHoli=parseNum(getRoom().ph);
+  if(regHoli>0&&HOLIDAYS[dateStr]){
+    return {type:'holiday',price:regHoli,label:'공휴일'};
+  }
   return isWe
     ?{type:'weekend',price:regWe,label:'주말'}
     :{type:'weekday',price:regWd,label:'주중'};
@@ -1241,6 +1262,7 @@ function buildBreakdownHtml(res,compact){
   const TC={
     weekday: {bg:'#EBF3FB',c:'#2E6DA4'},
     weekend: {bg:'#FEF0E6',c:'#C05A1F'},
+    holiday: {bg:'#FDE8EE',c:'#C8002A'},
     peak:    {bg:'#FDEAEA',c:'#C03030'},
     semi:    {bg:'#FEF3E6',c:'#B06020'},
     special: {bg:'#F0EBFB',c:'#6040B0'},
@@ -1417,14 +1439,17 @@ function _pcalGridHtml(){
     const isToday=ds===today;
     const isCi=ds===_pcal.ci;const isCo=ds===_pcal.co;
     const inR=_pcal.ci&&_pcal.co&&ds>_pcal.ci&&ds<_pcal.co;
+    const holi=HOLIDAYS[ds];
     let cls='cal-day';
     if(isCi)cls+=' cal-sel cal-ci';
     else if(isCo)cls+=' cal-sel cal-co';
     else if(inR)cls+=' cal-range';
     else{const bgc=_periodBgCls(ds);if(bgc)cls+=' '+bgc;}
+    if(holi)cls+=' holiday';
     if(isToday&&!isCi&&!isCo)cls+=' cal-today';
     const lbl=isCi?'<small>입실</small>':isCo?'<small>퇴실</small>'
       :isToday?'<small style="color:var(--accent)">오늘</small>'
+      :holi?`<small class="holi-lbl">${holi}</small>`
       :isWe?'<small class="we-lbl">주말</small>'
       :isSun?'<small class="su-lbl">일</small>'
       :'<small class="wd-lbl">주중</small>';
@@ -1528,8 +1553,30 @@ function calMonthNav(d){
   renderCalPage();
 }
 
+let calRoom=0;
+
+function renderCalRoomSel(){
+  const el=document.getElementById('calRoomSel');if(!el)return;
+  if(rooms.length<=1){el.innerHTML='';return;}
+  el.innerHTML=rooms.map((r,i)=>
+    `<button class="room-btn${i===calRoom?' active':''}" onclick="calRoom=${i};renderCalPage();">${r.name||'객실'}</button>`
+  ).join('');
+}
+
+function _resRoomIdx(r){return r.roomIdx!==undefined?r.roomIdx:0;}
+
+function _resConflicts(ci,co,roomIdx,excludeId){
+  return reservations.filter(r=>{
+    if(r.id===excludeId)return false;
+    if(_resRoomIdx(r)!==roomIdx)return false;
+    if(!r.ci||!r.co)return false;
+    return r.ci<co&&r.co>ci;
+  });
+}
+
 function renderCalPage(){
   const y=_mcal.y,m=_mcal.m;
+  renderCalRoomSel();
   document.getElementById('calMonthLabel').textContent=`${y}년 ${_MN[m]}`;
   _renderMonthGrid(y,m);
   if(_selectedDay)_renderDayDetail(_selectedDay);
@@ -1552,10 +1599,12 @@ function _renderMonthGrid(y,m){
     const isToday=ds===today;
     const isSel=ds===_selectedDay;
     const isSun=dow===0;const isWe=dow===5||dow===6;
-    const dayRes=reservations.filter(r=>r.ci&&r.co&&ds>=r.ci&&ds<r.co);
+    const dayRes=reservations.filter(r=>_resRoomIdx(r)===calRoom&&r.ci&&r.co&&ds>=r.ci&&ds<r.co);
     const bgc=!isSel?_periodBgCls(ds):'';
-    const cls=['month-day',isSun?'sun':isWe?'sat':'',isToday?'today':'',isSel?'selected':'',bgc].filter(Boolean).join(' ');
-    const dayLbl=isWe?'<small class="we-lbl">주말</small>'
+    const holi=HOLIDAYS[ds];
+    const cls=['month-day',isSun?'sun':isWe?'sat':'',isToday?'today':'',isSel?'selected':'',bgc,holi?'holiday':''].filter(Boolean).join(' ');
+    const dayLbl=holi?`<small class="holi-lbl">${holi}</small>`
+      :isWe?'<small class="we-lbl">주말</small>'
       :isSun?'<small class="su-lbl">일</small>'
       :'<small class="wd-lbl">주중</small>';
     // chips: ci day shows name, mid/co days show thin bar
@@ -1587,7 +1636,7 @@ function calDayClick(ds){
 }
 
 function _renderDayDetail(ds){
-  const dayRes=reservations.filter(r=>r.ci&&r.co&&ds>=r.ci&&ds<r.co);
+  const dayRes=reservations.filter(r=>_resRoomIdx(r)===calRoom&&r.ci&&r.co&&ds>=r.ci&&ds<r.co);
   const detailEl=document.getElementById('calDayDetail');
   const listEl=document.getElementById('resList');
   const mm=ds.slice(5,7),dd=ds.slice(8,10);
@@ -1639,7 +1688,7 @@ function _renderResList(){
   const detailEl=document.getElementById('calDayDetail');
   detailEl.style.display='none';
   const listEl=document.getElementById('resList');
-  const all=reservations.filter(r=>r.co>=today).sort((a,b)=>a.ci<b.ci?-1:1);
+  const all=reservations.filter(r=>_resRoomIdx(r)===calRoom&&r.co>=today).sort((a,b)=>a.ci<b.ci?-1:1);
   if(!all.length){
     listEl.innerHTML=`<div class="res-list"><div class="res-empty">예약이 없어요<br><span style="font-size:11px;">날짜를 누르거나 + 예약 버튼으로 추가하세요</span></div></div>`;
     listEl.style.display='block';return;
@@ -1774,9 +1823,11 @@ function _resCalGridHtml(){
     if(isCi||isCo){bg=isCi?'var(--accent)':'#3B82F6';color='white';fw='700';br='50%';}
     else if(inRange){bg='#FFF0EB';color='var(--ink)';}
     else if(isToday){outline='2px solid var(--accent)';}
-    if(!isCi&&!isCo){if(dow===0)color=color||'#EF4444';if(dow===6)color=color||'#3B82F6';}
+    const holi=HOLIDAYS[ds];
+    if(!isCi&&!isCo){if(holi||dow===0)color=color||'#EF4444';else if(dow===6)color=color||'#3B82F6';}
     if(!bg){const bgc=_periodBgCls(ds);if(bgc==='pk-bg')bg='rgba(192,48,48,0.10)';else if(bgc==='sm-bg')bg='rgba(176,96,32,0.10)';else if(bgc==='sp-bg')bg='rgba(96,64,176,0.10)';else if(bgc==='dc-bg')bg='rgba(46,125,80,0.10)';}
-    cells+=`<div onclick="_resCalPickDate('${ds}')" style="text-align:center;padding:8px 2px;cursor:pointer;border-radius:${br||'8px'};background:${bg};color:${color||'var(--ink)'};font-weight:${fw||'500'};font-size:13px;${outline?'outline:'+outline+';':''}">${d}</div>`;
+    const holiLabel=holi?`<div style="font-size:8px;color:#EF4444;font-weight:700;line-height:1;margin-top:1px;">${holi}</div>`:'';
+    cells+=`<div onclick="_resCalPickDate('${ds}')" style="text-align:center;padding:6px 2px 4px;cursor:pointer;border-radius:${br||'8px'};background:${bg};color:${color||'var(--ink)'};font-weight:${fw||'500'};font-size:13px;${outline?'outline:'+outline+';':''}">${d}${holiLabel}</div>`;
   }
   const legend=_calLegendHtml(y,m);
   return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -1815,29 +1866,62 @@ function _resUpdateDateBtn(){
   }
 }
 
-function saveRes(){
+let _pendingSaveData=null;
+
+function saveRes(forceConflict){
+  document.getElementById('resConflictBox').style.display='none';
   const name=document.getElementById('res_name').value.trim();
   const ci=document.getElementById('res_checkin').value;
   const co=document.getElementById('res_checkout').value;
   if(!name){alert('손님 이름을 입력해 주세요.');return;}
   if(!ci||!co){alert('입실 · 퇴실 날짜를 선택해 주세요.');return;}
   const id=document.getElementById('res_id').value;
+  const roomIdx=_pendingSaveData?_pendingSaveData.roomIdx:calRoom;
+  if(!forceConflict){
+    const conflicts=_resConflicts(ci,co,roomIdx,id);
+    if(conflicts.length){
+      _pendingSaveData={name,ci,co,roomIdx};
+      _showResConflict(conflicts[0]);
+      return;
+    }
+  }
   const phone=document.getElementById('res_phone').value.trim();
   const guests=document.getElementById('res_guests').value;
   const price=document.getElementById('res_price').value.replace(/[^0-9]/g,'');
   const note=document.getElementById('res_note').value.trim();
   if(id){
     const idx=reservations.findIndex(r=>r.id===id);
-    if(idx>=0)reservations[idx]={id,name,phone,guests,price,note,ci,co};
+    if(idx>=0)reservations[idx]={id,name,phone,guests,price,note,ci,co,roomIdx};
   } else {
-    reservations.push({id:Date.now().toString(36),name,phone,guests,price,note,ci,co});
+    reservations.push({id:Date.now().toString(36),name,phone,guests,price,note,ci,co,roomIdx});
   }
+  _pendingSaveData=null;
   saveReservations();closeResModal();
-  // 저장한 달로 이동
   if(ci){_mcal.y=parseInt(ci.slice(0,4));_mcal.m=parseInt(ci.slice(5,7))-1;}
   _selectedDay=ci||null;
   renderCalPage();
   toast('예약이 저장됐어요 ✓');
+}
+
+function _showResConflict(conflict){
+  const box=document.getElementById('resConflictBox');
+  const info=document.getElementById('resConflictInfo');
+  const ciStr=conflict.ci?conflict.ci.slice(5).replace('-','.'):'?';
+  const coStr=conflict.co?conflict.co.slice(5).replace('-','.'):'?';
+  const nights=conflict.ci&&conflict.co?Math.round((new Date(conflict.co)-new Date(conflict.ci))/86400000):'?';
+  info.innerHTML=`<b>${conflict.name||'이름 없음'}</b> ${conflict.guests?'· '+conflict.guests:''}<br>${ciStr} → ${coStr} (${nights}박)`;
+  document.getElementById('resConflictEditBtn').onclick=()=>{
+    document.getElementById('resConflictBox').style.display='none';
+    closeResModal();
+    setTimeout(()=>openResModal(conflict.id),200);
+  };
+  document.getElementById('resConflictDelBtn').onclick=()=>{
+    reservations=reservations.filter(r=>r.id!==conflict.id);
+    saveReservations();
+    saveRes(true);
+  };
+  box.style.display='block';
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function deleteRes(){
   const id=document.getElementById('res_id').value;
@@ -2303,6 +2387,27 @@ function _pfCalYearStep(d){_pfCal.y+=d;_pfRenderCal();}
 let _cal={ci:null,co:null,step:'ci',y:0,m:0,ym:false};
 const _MN=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
 
+const HOLIDAYS=(()=>{
+  const h={};
+  const fx=[[1,1,'신정'],[3,1,'삼일절'],[5,5,'어린이날'],[6,6,'현충일'],[8,15,'광복절'],[10,3,'개천절'],[10,9,'한글날'],[12,25,'성탄절']];
+  for(let y=2024;y<=2030;y++)fx.forEach(([m,d,n])=>{h[`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`]=n;});
+  [['2024-02-09','설연휴'],['2024-02-10','설날'],['2024-02-11','설연휴'],['2024-02-12','대체공휴일'],
+   ['2024-05-15','부처님오신날'],
+   ['2024-09-16','추석연휴'],['2024-09-17','추석'],['2024-09-18','추석연휴'],
+   ['2025-01-28','설연휴'],['2025-01-29','설날'],['2025-01-30','설연휴'],['2025-01-31','대체공휴일'],
+   ['2025-10-05','추석연휴'],['2025-10-06','추석'],['2025-10-07','추석연휴'],['2025-10-08','대체공휴일'],
+   ['2026-02-16','설연휴'],['2026-02-17','설날'],['2026-02-18','설연휴'],
+   ['2026-05-24','부처님오신날'],
+   ['2026-09-24','추석연휴'],['2026-09-25','추석'],['2026-09-26','추석연휴'],
+   ['2027-02-06','설연휴'],['2027-02-07','설날'],['2027-02-08','설연휴'],
+   ['2027-05-13','부처님오신날'],
+   ['2027-09-14','추석연휴'],['2027-09-15','추석'],['2027-09-16','추석연휴'],
+   ['2028-01-26','설연휴'],['2028-01-27','설날'],['2028-01-28','설연휴'],
+   ['2028-05-02','부처님오신날'],
+   ['2028-10-02','추석연휴'],['2028-10-03','추석'],['2028-10-04','추석연휴'],
+  ].forEach(([ds,n])=>{if(!h[ds])h[ds]=n;});
+  return h;
+})();
 const PT_BG={peak:'pk-bg',semi:'sm-bg',special:'sp-bg',discount:'dc-bg'};
 const PT_COLOR={peak:'#C03030',semi:'#B06020',special:'#6040B0',discount:'#2E7D50'};
 const PT_NAME={peak:'성수기',semi:'준성수기',special:'특별',discount:'할인'};
@@ -2346,15 +2451,18 @@ function _renderCal(){
     const isToday=ds===today;
     const isCi=ds===ci;const isCo=ds===co;
     const inR=ci&&co&&ds>ci&&ds<co;
+    const holi=HOLIDAYS[ds];
     let cls='cal-day';
     if(dis)cls+=' cal-dis';
     else if(isCi)cls+=' cal-sel cal-ci';
     else if(isCo)cls+=' cal-sel cal-co';
     else if(inR)cls+=' cal-range';
     else{const bgc=_periodBgCls(ds);if(bgc)cls+=' '+bgc;}
+    if(!dis&&holi)cls+=' holiday';
     if(isToday&&!isCi&&!isCo)cls+=' cal-today';
     const topLbl=isCi?'<small>입실</small>':isCo?'<small>퇴실</small>'
       :isToday?'<small style="color:var(--accent)">오늘</small>'
+      :(!dis&&holi)?`<small class="holi-lbl">${holi}</small>`
       :(!dis&&isWe)?'<small class="we-lbl">주말</small>'
       :(!dis&&isSun)?'<small class="su-lbl">일</small>'
       :(!dis)?'<small class="wd-lbl">주중</small>':'';
@@ -2406,8 +2514,9 @@ function _dateParts(ds){
   const dow=new Date(ds+'T00:00:00').getDay();
   const dNames=['일','월','화','수','목','금','토'];
   const isWe=dow===5||dow===6;const isSun=dow===0;
-  const tag=isWe?'주말':isSun?'일요일':'주중';
-  const color=isWe?'#C05A1F':isSun?'#EF4444':'#8E8E93';
+  const holi=HOLIDAYS[ds];
+  const tag=holi?'공휴일':isWe?'주말':isSun?'일요일':'주중';
+  const color=holi?'#C8002A':isWe?'#C05A1F':isSun?'#EF4444':'#8E8E93';
   const [,mm,dd]=ds.split('-');
   return{date:`${mm}.${dd}`,dow:dNames[dow],tag,color};
 }
@@ -2722,14 +2831,17 @@ function _pfRenderCal(){
     const isToday=ds===today;
     const isCi=ds===ci;const isCo=ds===co;
     const inR=ci&&co&&ds>ci&&ds<co;
+    const holi=HOLIDAYS[ds];
     let cls='cal-day';
     if(isCi)cls+=' cal-sel cal-ci';
     else if(isCo)cls+=' cal-sel cal-co';
     else if(inR)cls+=' cal-range';
     else{const bgc=_periodBgCls(ds);if(bgc)cls+=' '+bgc;}
+    if(holi)cls+=' holiday';
     if(isToday&&!isCi&&!isCo)cls+=' cal-today';
     const lbl=isCi?'<small>시작</small>':isCo?'<small>종료</small>'
       :isToday?'<small style="color:var(--accent)">오늘</small>'
+      :holi?`<small class="holi-lbl">${holi}</small>`
       :isWe?'<small class="we-lbl">주말</small>'
       :isSun?'<small class="su-lbl">일</small>'
       :'<small class="wd-lbl">주중</small>';
