@@ -312,6 +312,53 @@ input{text-overflow:ellipsis;}
 /* TOAST */
 .toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(28,28,30,.9);color:white;padding:11px 22px;border-radius:22px;font-size:13px;font-weight:500;opacity:0;transition:all .28s;pointer-events:none;z-index:999;white-space:nowrap;backdrop-filter:blur(8px);}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* CALENDAR PAGE */
+.cal-ph{display:flex;align-items:center;justify-content:space-between;background:white;border-radius:16px;padding:12px 16px;margin-bottom:12px;box-shadow:0 2px 10px var(--shadow);}
+.cal-ph-title{font-size:16px;font-weight:700;color:var(--ink);cursor:pointer;padding:4px 8px;border-radius:8px;}
+.cal-ph-title:active{background:var(--cream);}
+.cal-ph-nav{background:none;border:none;font-size:22px;color:var(--ink-light);cursor:pointer;padding:4px 10px;border-radius:8px;}
+.cal-ph-nav:active{background:var(--cream);}
+.cal-add-btn{background:var(--accent);color:white;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+.cal-add-btn:active{background:#e55a3a;}
+.month-grid{display:grid;grid-template-columns:repeat(7,1fr);background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px var(--shadow);margin-bottom:12px;}
+.month-dow{text-align:center;padding:8px 2px;font-size:10px;font-weight:700;color:var(--ink-light);background:var(--cream);border-bottom:1px solid var(--border);}
+.month-dow:first-child{color:#EF4444;}
+.month-dow:last-child{color:#3B82F6;}
+.month-day{min-height:52px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:4px 3px 3px;position:relative;cursor:pointer;background:white;transition:background .15s;}
+.month-day:active{background:var(--cream);}
+.month-day.other-month{background:#FAFAFA;}
+.month-day.other-month .md-num{color:#C7C7CC;}
+.month-day.today .md-num{background:var(--accent);color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;margin:0 auto;}
+.month-day:nth-child(7n){border-right:none;}
+.month-day:nth-last-child(-n+7){border-bottom:none;}
+.md-num{font-size:11px;font-weight:600;text-align:center;margin-bottom:3px;color:var(--ink);line-height:20px;}
+.month-day.sun .md-num{color:#EF4444;}
+.month-day.sat .md-num{color:#3B82F6;}
+.month-day.today.sun .md-num,.month-day.today.sat .md-num{color:white;}
+.res-bar{height:5px;border-radius:3px;margin-bottom:2px;}
+.res-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);margin:1px auto;}
+.res-list{background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px var(--shadow);margin-bottom:12px;}
+.res-list-head{padding:12px 16px;font-size:12px;font-weight:700;color:var(--ink-light);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border);}
+.res-item{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .15s;}
+.res-item:last-child{border-bottom:none;}
+.res-item:active{background:var(--cream);}
+.res-item-color{width:5px;border-radius:3px;flex-shrink:0;align-self:stretch;}
+.res-item-info{flex:1;min-width:0;}
+.res-item-name{font-size:14px;font-weight:600;color:var(--ink);}
+.res-item-dates{font-size:11px;color:var(--ink-light);margin-top:2px;}
+.res-item-price{font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;}
+.res-empty{padding:32px 16px;text-align:center;color:var(--ink-light);font-size:13px;}
+/* Reservation modal */
+.res-modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;}
+.res-modal-ov.open{display:flex;}
+.res-modal{background:white;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:20px 18px 32px;}
+.res-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.res-modal-head h3{font-size:16px;font-weight:700;color:var(--ink);}
+.res-modal-close{background:none;border:none;font-size:24px;color:var(--ink-light);cursor:pointer;}
+/* PRICE PAGE */
+.price-page-panel{background:white;border:none;border-radius:20px;padding:16px;margin-bottom:14px;box-shadow:0 2px 12px var(--shadow);}
+.price-page-panel h3{font-size:12px;font-weight:700;color:var(--ink-light);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;}
 </style>
 </head>
 <body>
@@ -405,14 +452,113 @@ input{text-overflow:ellipsis;}
 </div>
 
 <!-- ===== PAGE: 요금계산기 ===== -->
-<div class="page" id="page-calc">
-  <div class="calc-panel">
+<div class="page" id="page-price">
+  <div class="price-page-panel">
     <h3>🧮 요금 계산기</h3>
-    <div class="var-grid" style="margin-bottom:12px;">
-      <div class="vi"><label>입실 날짜</label><input type="date" id="c_checkin" oninput="calcPrice()"></div>
-      <div class="vi"><label>퇴실 날짜</label><input type="date" id="c_checkout" oninput="calcPrice()"></div>
+    <div id="priceRoomSel" class="room-sel" style="margin-bottom:12px;"></div>
+    <div class="vi" style="margin-bottom:12px;">
+      <label>입실 · 퇴실 날짜</label>
+      <div class="date-range-btn" id="priceDateBtn" onclick="openPriceDatePicker()">
+        <div class="drb-placeholder">📅 날짜를 선택하세요</div>
+      </div>
+      <input type="hidden" id="c_checkin">
+      <input type="hidden" id="c_checkout">
+    </div>
+    <div class="vi-row2" style="margin-bottom:12px;">
+      <div class="vi">
+        <label>인원</label>
+        <select id="c_guests" onchange="calcPricePage()">
+          <option value="">선택 안함</option>
+          <option>1명</option><option>2명</option><option>3명</option><option>4명</option>
+          <option>5명</option><option>6명</option><option>7명</option><option>8명</option>
+          <option>9명</option><option>10명</option>
+        </select>
+      </div>
+      <div class="vi">
+        <label>강아지</label>
+        <select id="c_dogs" onchange="calcPricePage()">
+          <option value="0">없음</option><option value="1">1마리</option><option value="2">2마리</option>
+        </select>
+      </div>
     </div>
     <div id="calcResult"><p style="font-size:12px;color:var(--ink-light);text-align:center;padding:20px 0;">날짜를 선택하면 요금이 자동 계산돼요 🌿</p></div>
+  </div>
+</div>
+
+<!-- ===== PAGE: 예약 캘린더 ===== -->
+<div class="page" id="page-cal">
+  <div class="cal-ph">
+    <button class="cal-ph-nav" onclick="calMonthNav(-1)">‹</button>
+    <span class="cal-ph-title" id="calMonthLabel" onclick="calMonthNav(0)"></span>
+    <button class="cal-ph-nav" onclick="calMonthNav(1)">›</button>
+    <button class="cal-add-btn" onclick="openResModal(null)">+ 예약</button>
+  </div>
+  <div id="monthGrid" class="month-grid"></div>
+  <div id="resList"></div>
+</div>
+
+<!-- 하단 내비게이션 -->
+<nav class="bnav">
+  <button class="bnav-btn active" id="bnav-msg" onclick="goPage('msg')">
+    <span class="ni">💬</span>문자
+  </button>
+  <button class="bnav-btn" id="bnav-cal" onclick="goPage('cal')">
+    <span class="ni">📅</span>캘린더
+  </button>
+  <button class="bnav-btn" id="bnav-price" onclick="goPage('price')">
+    <span class="ni">🧮</span>요금
+  </button>
+  <button class="bnav-btn" id="bnav-set" onclick="openSettings()">
+    <span class="ni">⚙️</span>설정
+  </button>
+</nav>
+
+<!-- 예약 추가/편집 모달 -->
+<div class="res-modal-ov" id="resModalOv" onclick="if(event.target===this)closeResModal()">
+  <div class="res-modal">
+    <div class="res-modal-head">
+      <h3 id="resModalTitle">새 예약</h3>
+      <button class="res-modal-close" onclick="closeResModal()">✕</button>
+    </div>
+    <div class="vi" style="margin-bottom:10px;">
+      <label>손님 이름</label>
+      <input type="text" id="res_name" placeholder="예: 홍길동" autocomplete="off">
+    </div>
+    <div class="vi" style="margin-bottom:10px;">
+      <label>연락처</label>
+      <input type="tel" id="res_phone" placeholder="예: 010-1234-5678" oninput="fmtPhone(this)" maxlength="13">
+    </div>
+    <div class="vi" style="margin-bottom:10px;">
+      <label>입실 · 퇴실 날짜</label>
+      <div class="date-range-btn" id="resDateBtn" onclick="openResDatePicker()">
+        <div class="drb-placeholder">📅 날짜를 선택하세요</div>
+      </div>
+      <input type="hidden" id="res_checkin">
+      <input type="hidden" id="res_checkout">
+    </div>
+    <div class="vi-row2" style="margin-bottom:10px;">
+      <div class="vi">
+        <label>인원</label>
+        <select id="res_guests">
+          <option value="">-</option>
+          <option>1명</option><option>2명</option><option>3명</option><option>4명</option>
+          <option>5명</option><option>6명</option><option>7명</option><option>8명</option>
+        </select>
+      </div>
+      <div class="vi">
+        <label>숙박금액</label>
+        <input type="tel" id="res_price" placeholder="자동계산" oninput="fmtPrice(this)">
+      </div>
+    </div>
+    <div class="vi" style="margin-bottom:10px;">
+      <label>메모</label>
+      <input type="text" id="res_note" placeholder="특이사항 등">
+    </div>
+    <input type="hidden" id="res_id">
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-dark" style="flex:1;" onclick="saveRes()">💾 저장</button>
+      <button class="btn btn-del" id="resDelBtn" onclick="deleteRes()" style="display:none;">삭제</button>
+    </div>
   </div>
 </div>
 
@@ -811,13 +957,15 @@ function savePeriodsStorage(){localStorage.setItem(SK_PER,JSON.stringify(periods
 function goPage(p){
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.bnav-btn').forEach(el=>el.classList.remove('active'));
-  document.getElementById('page-'+p).classList.add('active');
-  document.getElementById('bnav-'+p).classList.add('active');
+  const pageEl=document.getElementById('page-'+p);
+  if(pageEl) pageEl.classList.add('active');
+  const navEl=document.getElementById('bnav-'+p);
+  if(navEl) navEl.classList.add('active');
   const tabs=document.getElementById('stageTabs');
   tabs.style.display=(p==='msg')?'flex':'none';
   if(p==='msg') renderStage();
-  if(p==='calc'){syncCalcDates();calcPrice();}
-  if(p==='set'){applySettingsToUI();renderPeriods();}
+  if(p==='price'){renderPriceRoomSel();calcPricePage();}
+  if(p==='cal'){renderCalPage();}
 }
 
 /* =============================================
@@ -1113,21 +1261,380 @@ function buildBreakdownHtml(res,compact){
   return rows+discRow+extraRow+childRow+dogRow+bbqRow+totalRow;
 }
 
-/* 요금계산기 페이지 */
-function syncCalcDates(){
-  const ci=document.getElementById('v_checkin').value;
-  const co=document.getElementById('v_checkout').value;
-  if(ci)document.getElementById('c_checkin').value=ci;
-  if(co)document.getElementById('c_checkout').value=co;
+/* =============================================
+   요금 계산기 페이지
+============================================= */
+let _pcal={ci:null,co:null,step:'ci',y:0,m:0,ym:false};
+
+function renderPriceRoomSel(){
+  const el=document.getElementById('priceRoomSel');
+  if(!el||rooms.length<=1)return;
+  el.innerHTML=rooms.map((r,i)=>
+    `<button class="room-btn${i===curRoom?' active':''}" onclick="curRoom=${i};renderPriceRoomSel();calcPricePage();">${r.name||'객실'}</button>`
+  ).join('');
 }
-function calcPrice(){
+
+function openPriceDatePicker(){
+  const today=new Date();
+  _pcal.y=today.getFullYear();_pcal.m=today.getMonth();
+  _pcal.ci=document.getElementById('c_checkin').value||null;
+  _pcal.co=document.getElementById('c_checkout').value||null;
+  _pcal.step='ci';_pcal.ym=false;
+  _renderPCal();
+}
+function _pcalSetYM(y,m){_pcal.y=y;_pcal.m=m;_pcal.ym=false;_renderPCal();}
+function _pcalYearStep(d){_pcal.y+=d;_renderPCal();}
+
+function _renderPCal(){
+  const existing=document.getElementById('_pcalModal');if(existing)existing.remove();
+  const el=document.createElement('div');
+  el.id='_pcalModal';
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:700;display:flex;align-items:flex-end;justify-content:center;';
+  const hint=_pcal.step==='ci'?'입실 날짜를 선택하세요':'퇴실 날짜를 선택하세요';
+  el.innerHTML=`<div style="background:white;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:18px 14px 28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <button style="background:none;border:none;font-size:22px;color:var(--ink-light);cursor:pointer;padding:4px 10px;" onclick="(function(){const m=document.getElementById('_pcalModal');if(m)m.remove();})()">✕</button>
+      <span style="font-size:13px;font-weight:600;color:var(--accent);">${hint}</span>
+      <div style="width:46px;"></div>
+    </div>
+    ${_pcal.ym?_ymPickerHtml(_pcal.y,_pcal.m,'_pcalSetYM','_pcalYearStep'):_pcalGridHtml()}
+  </div>`;
+  el.addEventListener('click',e=>{if(e.target===el)el.remove();});
+  document.body.appendChild(el);
+}
+function _pcalGridHtml(){
+  const y=_pcal.y,m=_pcal.m;
+  const today=new Date().toISOString().slice(0,10);
+  const first=new Date(y,m,1).getDay();
+  const days=new Date(y,m+1,0).getDate();
+  const DOW=['일','월','화','수','목','금','토'];
+  let cells=DOW.map(d=>`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--ink-light);padding:6px 0;">${d}</div>`).join('');
+  for(let i=0;i<first;i++)cells+=`<div></div>`;
+  for(let d=1;d<=days;d++){
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow=(first+d-1)%7;
+    const isCi=_pcal.ci===ds,isCo=_pcal.co===ds;
+    const inRange=_pcal.ci&&_pcal.co&&ds>_pcal.ci&&ds<_pcal.co;
+    const isToday=ds===today;
+    let bg='',color='',fw='',br='',outline='';
+    if(isCi||isCo){bg=isCi?'var(--accent)':'#3B82F6';color='white';fw='700';br='50%';}
+    else if(inRange){bg='#FFF0EB';color='var(--ink)';}
+    else if(isToday){outline='2px solid var(--accent)';}
+    if(!isCi&&!isCo){if(dow===0)color=color||'#EF4444';if(dow===6)color=color||'#3B82F6';}
+    cells+=`<div onclick="_pcalPickDate('${ds}')" style="text-align:center;padding:8px 2px;cursor:pointer;border-radius:${br||'8px'};background:${bg};color:${color||'var(--ink)'};font-weight:${fw||'500'};font-size:13px;${outline?'outline:'+outline+';':''}">${d}</div>`;
+  }
+  return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <button class="cal-nav" onclick="_pcalNav(-1)">‹</button>
+    <span style="font-size:15px;font-weight:700;cursor:pointer;" onclick="_pcal.ym=true;_renderPCal();">${y}년 ${_MN[m]}</span>
+    <button class="cal-nav" onclick="_pcalNav(1)">›</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">${cells}</div>`;
+}
+function _pcalNav(d){_pcal.m+=d;if(_pcal.m<0){_pcal.m=11;_pcal.y--;}if(_pcal.m>11){_pcal.m=0;_pcal.y++;}_renderPCal();}
+function _pcalPickDate(ds){
+  if(_pcal.step==='ci'){_pcal.ci=ds;_pcal.co=null;_pcal.step='co';}
+  else{if(ds<=_pcal.ci){_pcal.ci=ds;_pcal.co=null;_pcal.step='co';}
+  else{_pcal.co=ds;_pcalConfirm();return;}}
+  _renderPCal();
+}
+function _pcalConfirm(){
+  document.getElementById('c_checkin').value=_pcal.ci||'';
+  document.getElementById('c_checkout').value=_pcal.co||'';
+  _updatePriceDateBtn();
+  const m=document.getElementById('_pcalModal');if(m)m.remove();
+  calcPricePage();
+}
+function _updatePriceDateBtn(){
+  const ci=document.getElementById('c_checkin').value;
+  const co=document.getElementById('c_checkout').value;
+  const btn=document.getElementById('priceDateBtn');
+  if(!btn)return;
+  if(ci&&co){
+    const n=Math.round((new Date(co)-new Date(ci))/86400000);
+    const cp=_dateParts(ci);const cop=_dateParts(co);
+    btn.innerHTML=`
+      <div class="drb-side ci">
+        <span class="drb-label">📅 입실</span>
+        <span class="drb-date">${cp.date}</span>
+        <span class="drb-sub">${cp.dow}요일 · <span style="color:${cp.color};font-weight:600">${cp.tag}</span></span>
+      </div>
+      <div class="drb-mid"><span class="drb-arrow">→</span><span class="drb-nights">${n}박</span></div>
+      <div class="drb-side">
+        <span class="drb-label">🚪 퇴실</span>
+        <span class="drb-date">${cop.date}</span>
+        <span class="drb-sub">${cop.dow}요일 · <span style="color:${cop.color};font-weight:600">${cop.tag}</span></span>
+      </div>`;
+  } else {
+    btn.innerHTML=`<div class="drb-placeholder">📅 날짜를 선택하세요</div>`;
+  }
+}
+function calcPricePage(){
   const ci=document.getElementById('c_checkin').value;
   const co=document.getElementById('c_checkout').value;
   const el=document.getElementById('calcResult');
   if(!ci||!co){el.innerHTML='<p style="font-size:12px;color:var(--ink-light);text-align:center;padding:20px 0;">날짜를 선택하면 요금이 자동 계산돼요 🌿</p>';return;}
-  const res=calcNights(ci,co);
+  const guestsSel=document.getElementById('c_guests').value;
+  const dogs=parseInt(document.getElementById('c_dogs').value)||0;
+  const res=calcNights(ci,co,guestsSel||'',0,dogs,false);
   if(!res||!res.nights){el.innerHTML='<p style="font-size:12px;color:#C04040;text-align:center;padding:12px;">퇴실일이 입실일보다 빠릅니다</p>';return;}
   el.innerHTML=buildBreakdownHtml(res,false);
+}
+
+/* =============================================
+   예약 캘린더 페이지
+============================================= */
+const SK_RES='staymsg_res_v1';
+let reservations=[];
+let _mcal={y:new Date().getFullYear(),m:new Date().getMonth()};
+
+function loadReservations(){
+  try{reservations=JSON.parse(localStorage.getItem(SK_RES)||'[]');}catch(e){reservations=[];}
+}
+function saveReservations(){localStorage.setItem(SK_RES,JSON.stringify(reservations));}
+
+const RES_COLORS=['#FF6B4A','#3B82F6','#10B981','#8B5CF6','#F59E0B','#EC4899','#06B6D4','#EF4444'];
+function resColor(id){const n=parseInt(id||'0',36)||0;return RES_COLORS[n%RES_COLORS.length];}
+
+function calMonthNav(d){
+  if(d===0){_mcal.y=new Date().getFullYear();_mcal.m=new Date().getMonth();}
+  else{_mcal.m+=d;if(_mcal.m<0){_mcal.m=11;_mcal.y--;}if(_mcal.m>11){_mcal.m=0;_mcal.y++;}}
+  renderCalPage();
+}
+
+function renderCalPage(){
+  const y=_mcal.y,m=_mcal.m;
+  document.getElementById('calMonthLabel').textContent=`${y}년 ${_MN[m]}`;
+  _renderMonthGrid(y,m);
+  _renderResList();
+}
+
+function _renderMonthGrid(y,m){
+  const today=new Date().toISOString().slice(0,10);
+  const first=new Date(y,m,1).getDay();
+  const days=new Date(y,m+1,0).getDate();
+  const DOW=['일','월','화','수','목','금','토'];
+  let html=DOW.map(d=>`<div class="month-dow">${d}</div>`).join('');
+  // prev month fill
+  const prevDays=new Date(y,m,0).getDate();
+  for(let i=first-1;i>=0;i--){
+    html+=`<div class="month-day other-month"><div class="md-num">${prevDays-i}</div></div>`;
+  }
+  for(let d=1;d<=days;d++){
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow=(first+d-1)%7;
+    const isToday=ds===today;
+    const dayRes=reservations.filter(r=>r.ci&&r.co&&ds>=r.ci&&ds<r.co);
+    const classes=['month-day',dow===0?'sun':dow===6?'sat':'',isToday?'today':''].filter(Boolean).join(' ');
+    const bars=dayRes.slice(0,2).map(r=>`<div class="res-bar" style="background:${resColor(r.id)};"></div>`).join('');
+    html+=`<div class="${classes}" onclick="calDayClick('${ds}')">
+      <div class="md-num">${d}</div>${bars}
+      ${dayRes.length>2?`<div style="font-size:8px;text-align:center;color:var(--ink-light);">+${dayRes.length-2}</div>`:''}
+    </div>`;
+  }
+  // next month fill
+  const total=first+days;const rem=total%7===0?0:7-(total%7);
+  for(let i=1;i<=rem;i++)html+=`<div class="month-day other-month"><div class="md-num">${i}</div></div>`;
+  document.getElementById('monthGrid').innerHTML=html;
+}
+
+function _renderResList(){
+  const today=new Date().toISOString().slice(0,10);
+  const upcoming=reservations.filter(r=>r.co>=today).sort((a,b)=>a.ci<b.ci?-1:1);
+  const el=document.getElementById('resList');
+  if(!upcoming.length){el.innerHTML=`<div class="res-list"><div class="res-empty">예약이 없어요<br><span style="font-size:11px;">+ 예약 버튼으로 추가하세요</span></div></div>`;return;}
+  const items=upcoming.map(r=>{
+    const ci=r.ci?r.ci.slice(5).replace('-','.'):'?';
+    const co=r.co?r.co.slice(5).replace('-','.'):'?';
+    const nights=r.ci&&r.co?Math.round((new Date(r.co)-new Date(r.ci))/86400000)+'박':'';
+    const price=r.price?parseNum(r.price).toLocaleString('ko-KR')+'원':'';
+    return `<div class="res-item" onclick="openResModal('${r.id}')">
+      <div class="res-item-color" style="background:${resColor(r.id)};"></div>
+      <div class="res-item-info">
+        <div class="res-item-name">${r.name||'이름 없음'}${r.guests?' · '+r.guests:''}</div>
+        <div class="res-item-dates">${ci} → ${co}${nights?' ('+nights+')':''}</div>
+      </div>
+      ${price?`<div class="res-item-price">${price}</div>`:''}
+    </div>`;
+  }).join('');
+  el.innerHTML=`<div class="res-list"><div class="res-list-head">다가오는 예약 · ${upcoming.length}건</div>${items}</div>`;
+}
+
+function calDayClick(ds){
+  const dayRes=reservations.filter(r=>r.ci&&r.co&&ds>=r.ci&&ds<r.co);
+  if(dayRes.length===1){openResModal(dayRes[0].id);return;}
+  if(dayRes.length>1){
+    const names=dayRes.map(r=>r.name||'이름 없음').join(', ');
+    if(confirm(`${ds.slice(5).replace('-','.')} 예약: ${names}\n\n첫 번째 예약을 여시겠어요?`))openResModal(dayRes[0].id);
+    return;
+  }
+  // No reservation - open new with date pre-filled
+  openResModal(null,ds);
+}
+
+function openResModal(id,prefillDate){
+  const m=document.getElementById('resModalOv');
+  const isNew=!id;
+  document.getElementById('resModalTitle').textContent=isNew?'새 예약':'예약 수정';
+  document.getElementById('resDelBtn').style.display=isNew?'none':'';
+  document.getElementById('res_id').value=id||'';
+  if(isNew){
+    document.getElementById('res_name').value='';
+    document.getElementById('res_phone').value='';
+    document.getElementById('res_guests').value='';
+    document.getElementById('res_price').value='';
+    document.getElementById('res_note').value='';
+    document.getElementById('res_checkin').value=prefillDate||'';
+    document.getElementById('res_checkout').value='';
+    _resCalState.ci=prefillDate||null;_resCalState.co=null;
+  } else {
+    const r=reservations.find(x=>x.id===id);
+    if(!r)return;
+    document.getElementById('res_name').value=r.name||'';
+    document.getElementById('res_phone').value=r.phone||'';
+    document.getElementById('res_guests').value=r.guests||'';
+    const p=r.price?parseNum(r.price).toLocaleString('ko-KR')+'원':'';
+    document.getElementById('res_price').value=p;
+    document.getElementById('res_note').value=r.note||'';
+    document.getElementById('res_checkin').value=r.ci||'';
+    document.getElementById('res_checkout').value=r.co||'';
+    _resCalState.ci=r.ci||null;_resCalState.co=r.co||null;
+  }
+  _resUpdateDateBtn();
+  m.classList.add('open');
+}
+function closeResModal(){document.getElementById('resModalOv').classList.remove('open');}
+
+// Reservation date picker state
+let _resCalState={ci:null,co:null,step:'ci',y:0,m:0,ym:false};
+function openResDatePicker(){
+  const today=new Date();
+  _resCalState.y=today.getFullYear();_resCalState.m=today.getMonth();
+  _resCalState.ci=document.getElementById('res_checkin').value||null;
+  _resCalState.co=document.getElementById('res_checkout').value||null;
+  _resCalState.step='ci';_resCalState.ym=false;
+  _renderResCal();
+}
+function _resCalSetYM(y,m){_resCalState.y=y;_resCalState.m=m;_resCalState.ym=false;_renderResCal();}
+function _resCalYearStep(d){_resCalState.y+=d;_renderResCal();}
+function _renderResCal(){
+  const existing=document.getElementById('_resCalModal');if(existing)existing.remove();
+  const el=document.createElement('div');
+  el.id='_resCalModal';
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;display:flex;align-items:flex-end;justify-content:center;';
+  const hint=_resCalState.step==='ci'?'입실 날짜를 선택하세요':'퇴실 날짜를 선택하세요';
+  el.innerHTML=`<div style="background:white;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:18px 14px 28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <button style="background:none;border:none;font-size:22px;color:var(--ink-light);cursor:pointer;padding:4px 10px;" onclick="(function(){const m=document.getElementById('_resCalModal');if(m)m.remove();})()">✕</button>
+      <span style="font-size:13px;font-weight:600;color:var(--accent);">${hint}</span>
+      <div style="width:46px;"></div>
+    </div>
+    ${_resCalState.ym?_ymPickerHtml(_resCalState.y,_resCalState.m,'_resCalSetYM','_resCalYearStep'):_resCalGridHtml()}
+  </div>`;
+  el.addEventListener('click',e=>{if(e.target===el)el.remove();});
+  document.body.appendChild(el);
+}
+function _resCalGridHtml(){
+  const y=_resCalState.y,m=_resCalState.m;
+  const today=new Date().toISOString().slice(0,10);
+  const first=new Date(y,m,1).getDay();
+  const days=new Date(y,m+1,0).getDate();
+  const DOW=['일','월','화','수','목','금','토'];
+  let cells=DOW.map(d=>`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--ink-light);padding:6px 0;">${d}</div>`).join('');
+  for(let i=0;i<first;i++)cells+=`<div></div>`;
+  for(let d=1;d<=days;d++){
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow=(first+d-1)%7;
+    const isCi=_resCalState.ci===ds,isCo=_resCalState.co===ds;
+    const inRange=_resCalState.ci&&_resCalState.co&&ds>_resCalState.ci&&ds<_resCalState.co;
+    const isToday=ds===today;
+    let bg='',color='',fw='',br='',outline='';
+    if(isCi||isCo){bg=isCi?'var(--accent)':'#3B82F6';color='white';fw='700';br='50%';}
+    else if(inRange){bg='#FFF0EB';color='var(--ink)';}
+    else if(isToday){outline='2px solid var(--accent)';}
+    if(!isCi&&!isCo){if(dow===0)color=color||'#EF4444';if(dow===6)color=color||'#3B82F6';}
+    cells+=`<div onclick="_resCalPickDate('${ds}')" style="text-align:center;padding:8px 2px;cursor:pointer;border-radius:${br||'8px'};background:${bg};color:${color||'var(--ink)'};font-weight:${fw||'500'};font-size:13px;${outline?'outline:'+outline+';':''}">${d}</div>`;
+  }
+  return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <button class="cal-nav" onclick="_resCalNav(-1)">‹</button>
+    <span style="font-size:15px;font-weight:700;cursor:pointer;" onclick="_resCalState.ym=true;_renderResCal();">${y}년 ${_MN[m]}</span>
+    <button class="cal-nav" onclick="_resCalNav(1)">›</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">${cells}</div>`;
+}
+function _resCalNav(d){_resCalState.m+=d;if(_resCalState.m<0){_resCalState.m=11;_resCalState.y--;}if(_resCalState.m>11){_resCalState.m=0;_resCalState.y++;}_renderResCal();}
+function _resCalPickDate(ds){
+  if(_resCalState.step==='ci'){_resCalState.ci=ds;_resCalState.co=null;_resCalState.step='co';}
+  else{if(ds<=_resCalState.ci){_resCalState.ci=ds;_resCalState.co=null;_resCalState.step='co';}
+  else{_resCalState.co=ds;_resCalConfirm();return;}}
+  _renderResCal();
+}
+function _resCalConfirm(){
+  document.getElementById('res_checkin').value=_resCalState.ci||'';
+  document.getElementById('res_checkout').value=_resCalState.co||'';
+  _resUpdateDateBtn();
+  const m=document.getElementById('_resCalModal');if(m)m.remove();
+}
+function _resUpdateDateBtn(){
+  const ci=document.getElementById('res_checkin').value;
+  const co=document.getElementById('res_checkout').value;
+  const btn=document.getElementById('resDateBtn');
+  if(!btn)return;
+  if(ci&&co){
+    const n=Math.round((new Date(co)-new Date(ci))/86400000);
+    const cp=_dateParts(ci);const cop=_dateParts(co);
+    btn.innerHTML=`
+      <div class="drb-side ci">
+        <span class="drb-label">📅 입실</span>
+        <span class="drb-date">${cp.date}</span>
+        <span class="drb-sub">${cp.dow}요일 · <span style="color:${cp.color};font-weight:600">${cp.tag}</span></span>
+      </div>
+      <div class="drb-mid"><span class="drb-arrow">→</span><span class="drb-nights">${n}박</span></div>
+      <div class="drb-side">
+        <span class="drb-label">🚪 퇴실</span>
+        <span class="drb-date">${cop.date}</span>
+        <span class="drb-sub">${cop.dow}요일 · <span style="color:${cop.color};font-weight:600">${cop.tag}</span></span>
+      </div>`;
+  } else if(ci){
+    const cp=_dateParts(ci);
+    btn.innerHTML=`
+      <div class="drb-side ci">
+        <span class="drb-label">📅 입실</span>
+        <span class="drb-date">${cp.date}</span>
+        <span class="drb-sub">${cp.dow}요일 · <span style="color:${cp.color};font-weight:600">${cp.tag}</span></span>
+      </div>
+      <div class="drb-mid"><span class="drb-arrow">→</span></div>
+      <div class="drb-side"><span class="drb-label" style="color:#C7C7CC;">🚪 퇴실</span><span class="drb-date" style="color:#C7C7CC;">미선택</span></div>`;
+  } else {
+    btn.innerHTML=`<div class="drb-placeholder">📅 날짜를 선택하세요</div>`;
+  }
+}
+
+function saveRes(){
+  const name=document.getElementById('res_name').value.trim();
+  const ci=document.getElementById('res_checkin').value;
+  const co=document.getElementById('res_checkout').value;
+  if(!name){alert('손님 이름을 입력해 주세요.');return;}
+  if(!ci||!co){alert('입실 · 퇴실 날짜를 선택해 주세요.');return;}
+  const id=document.getElementById('res_id').value;
+  const phone=document.getElementById('res_phone').value.trim();
+  const guests=document.getElementById('res_guests').value;
+  const price=document.getElementById('res_price').value.replace(/[^0-9]/g,'');
+  const note=document.getElementById('res_note').value.trim();
+  if(id){
+    const idx=reservations.findIndex(r=>r.id===id);
+    if(idx>=0)reservations[idx]={id,name,phone,guests,price,note,ci,co};
+  } else {
+    reservations.push({id:Date.now().toString(36),name,phone,guests,price,note,ci,co});
+  }
+  saveReservations();closeResModal();renderCalPage();
+  toast('예약이 저장됐어요 ✓');
+}
+function deleteRes(){
+  const id=document.getElementById('res_id').value;
+  if(!id||!confirm('이 예약을 삭제할까요?'))return;
+  reservations=reservations.filter(r=>r.id!==id);
+  saveReservations();closeResModal();renderCalPage();
+  toast('예약이 삭제됐어요');
 }
 
 /* =============================================
@@ -1729,10 +2236,19 @@ function openSettings(){
   applySettingsToUI();renderPeriods();
   document.getElementById('setOverlay').classList.add('open');
   document.getElementById('setPanel').classList.add('open');
+  document.querySelectorAll('.bnav-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('bnav-set').classList.add('active');
 }
 function closeSettings(){
   document.getElementById('setOverlay').classList.remove('open');
   document.getElementById('setPanel').classList.remove('open');
+  // restore active nav to current page
+  const activePage=document.querySelector('.page.active');
+  if(activePage){
+    const p=activePage.id.replace('page-','');
+    const btn=document.getElementById('bnav-'+p);
+    if(btn){document.querySelectorAll('.bnav-btn').forEach(el=>el.classList.remove('active'));btn.classList.add('active');}
+  }
 }
 function saveSettings(){
   const dr=parseInt(document.getElementById('cfg_default_room')?.value)||0;
@@ -2073,6 +2589,7 @@ function toast(msg){
    INIT
 ============================================= */
 loadAll();
+loadReservations();
 buildTabs();
 renderStage();
 updateGuestSelect();

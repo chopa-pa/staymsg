@@ -1,4 +1,4 @@
-const CACHE_NAME = 'minbak-v20';
+const CACHE_NAME = 'minbak-v21';
 const ASSETS = [
   './index.html',
   './manifest.json',
