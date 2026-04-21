@@ -2485,7 +2485,7 @@ function saveSettings(){
   saveSettingsStorage();
   currentRoomIdx=Math.min(dr,rooms.length-1);
   const h=document.getElementById('hdrTitle');if(h&&settings.name)h.textContent=`📱 StayMsg (${settings.name})`;
-  updateGuestSelect();updateDogRow();updateBbqRow();
+  updateGuestSelect();updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();
   renderRoomSelector();
   closeSettings();
   toast('설정이 저장됐어요 ✓');
@@ -2530,7 +2530,7 @@ function selectRoom(idx){
   const el=document.getElementById('dog_count_display');if(el)el.textContent=0;
   const bbq=document.getElementById('chk_bbq');if(bbq)bbq.classList.remove('on');
   renderRoomSelector();
-  updateGuestSelect();updateDogRow();updateBbqRow();
+  updateGuestSelect();updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();
   autoFillPrice();
 }
 function renderRoomList(){
@@ -2624,7 +2624,7 @@ function saveRoomModal(){
   if(currentRoomIdx>=rooms.length)currentRoomIdx=rooms.length-1;
   closeRoomModal();
   renderRoomList();renderRoomSelector();
-  updateGuestSelect();updateDogRow();updateBbqRow();
+  updateGuestSelect();updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();
   toast('객실 정보가 저장됐어요 ✓');
 }
 function deleteRoomFromModal(){
@@ -2844,7 +2844,7 @@ loadReservations();
 buildTabs();
 renderStage();
 updateGuestSelect();
-updateDogRow();updateBbqRow();
+updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();
 renderRoomSelector();
 if(settings.name)document.getElementById('hdrTitle').textContent=`📱 StayMsg (${settings.name})`;
 loadFormState();
