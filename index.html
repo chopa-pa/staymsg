@@ -325,19 +325,24 @@ input{text-overflow:ellipsis;}
 .month-dow{text-align:center;padding:8px 2px;font-size:10px;font-weight:700;color:var(--ink-light);background:var(--cream);border-bottom:1px solid var(--border);}
 .month-dow:first-child{color:#EF4444;}
 .month-dow:last-child{color:#3B82F6;}
-.month-day{min-height:52px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:4px 3px 3px;position:relative;cursor:pointer;background:white;transition:background .15s;}
-.month-day:active{background:var(--cream);}
+.month-day{min-height:62px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:4px 2px 3px;position:relative;cursor:pointer;background:white;transition:background .15s;overflow:hidden;}
+.month-day:active{background:#FFF5F3;}
 .month-day.other-month{background:#FAFAFA;}
 .month-day.other-month .md-num{color:#C7C7CC;}
-.month-day.today .md-num{background:var(--accent);color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;margin:0 auto;}
+.month-day.today .md-num-inner{background:var(--accent);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin:0 auto;}
+.month-day.selected{background:#FFF5F3;}
 .month-day:nth-child(7n){border-right:none;}
 .month-day:nth-last-child(-n+7){border-bottom:none;}
-.md-num{font-size:11px;font-weight:600;text-align:center;margin-bottom:3px;color:var(--ink);line-height:20px;}
+.md-num{font-size:11px;font-weight:600;text-align:center;margin-bottom:3px;color:var(--ink);line-height:22px;}
+.md-num-inner{line-height:22px;}
 .month-day.sun .md-num{color:#EF4444;}
 .month-day.sat .md-num{color:#3B82F6;}
-.month-day.today.sun .md-num,.month-day.today.sat .md-num{color:white;}
-.res-bar{height:5px;border-radius:3px;margin-bottom:2px;}
-.res-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);margin:1px auto;}
+.month-day.today.sun .md-num-inner,.month-day.today.sat .md-num-inner{color:white;}
+.res-chip{font-size:9px;font-weight:700;padding:1px 3px;border-radius:3px;color:white;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:14px;}
+.res-chip.ci-day{border-radius:6px 2px 2px 6px;}
+.res-chip.mid-day{border-radius:0;opacity:.85;}
+.res-chip.co-day{border-radius:2px 6px 6px 2px;opacity:.7;}
+.res-more{font-size:8px;color:var(--ink-light);text-align:center;}
 .res-list{background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px var(--shadow);margin-bottom:12px;}
 .res-list-head{padding:12px 16px;font-size:12px;font-weight:700;color:var(--ink-light);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border);}
 .res-item{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .15s;}
@@ -443,6 +448,8 @@ input{text-overflow:ellipsis;}
     </div>
     <!-- 요금 자동계산 결과 -->
     <div class="price-result" id="priceResult" style="display:none;"></div>
+    <!-- 캘린더 저장 버튼 -->
+    <button id="calSaveBtn" onclick="saveToCalendar()" style="display:none;width:100%;margin-top:10px;padding:11px;background:#EBF3FB;border:1.5px solid #B8D4F0;border-radius:12px;color:#2E6DA4;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">📅 캘린더에 저장</button>
     <p class="var-hint">
       손님: <code>{이름}</code><code>{입실}</code><code>{퇴실}</code><code>{인원}</code><code>{금액}</code><code>{연락처}</code><code>{아동}</code><code>{강아지}</code><br>
       설정: <code>{숙소}</code><code>{주소}</code><code>{계좌}</code><code>{와이파이}</code><code>{비번}</code><code>{주중요금}</code><code>{주말요금}</code><code>{성수기요금}</code>
@@ -509,11 +516,14 @@ input{text-overflow:ellipsis;}
 <div class="page" id="page-cal">
   <div class="cal-ph">
     <button class="cal-ph-nav" onclick="calMonthNav(-1)">‹</button>
-    <span class="cal-ph-title" id="calMonthLabel" onclick="calMonthNav(0)"></span>
+    <span class="cal-ph-title" id="calMonthLabel"></span>
     <button class="cal-ph-nav" onclick="calMonthNav(1)">›</button>
     <button class="cal-add-btn" onclick="openResModal(null)">+ 예약</button>
   </div>
   <div id="monthGrid" class="month-grid"></div>
+  <!-- 선택된 날짜 예약 상세 -->
+  <div id="calDayDetail" style="display:none;"></div>
+  <!-- 전체 예약 목록 -->
   <div id="resList"></div>
 </div>
 
@@ -533,51 +543,44 @@ input{text-overflow:ellipsis;}
   </button>
 </nav>
 
-<!-- 예약 추가/편집 모달 -->
-<div class="res-modal-ov" id="resModalOv" onclick="if(event.target===this)closeResModal()">
-  <div class="res-modal">
-    <div class="res-modal-head">
-      <h3 id="resModalTitle">새 예약</h3>
-      <button class="res-modal-close" onclick="closeResModal()">✕</button>
-    </div>
-    <div class="vi" style="margin-bottom:10px;">
-      <label>손님 이름</label>
-      <input type="text" id="res_name" placeholder="예: 홍길동" autocomplete="off">
-    </div>
-    <div class="vi" style="margin-bottom:10px;">
-      <label>연락처</label>
-      <input type="tel" id="res_phone" placeholder="예: 010-1234-5678" oninput="fmtPhone(this)" maxlength="13">
-    </div>
-    <div class="vi" style="margin-bottom:10px;">
-      <label>입실 · 퇴실 날짜</label>
-      <div class="date-range-btn" id="resDateBtn" onclick="openResDatePicker()">
-        <div class="drb-placeholder">📅 날짜를 선택하세요</div>
+<!-- 예약 추가/편집 패널 (슬라이딩) -->
+<div class="set-overlay" id="resOverlay" onclick="closeResModal()"></div>
+<div class="set-panel" id="resPanel">
+  <div class="set-panel-head">
+    <h2 id="resModalTitle">새 예약</h2>
+    <button class="set-panel-close" onclick="closeResModal()">✕</button>
+  </div>
+  <div style="padding:14px;">
+    <div class="var-panel" style="margin-bottom:12px;">
+      <div class="var-grid">
+        <div class="vi"><label>손님 이름</label><input type="text" id="res_name" placeholder="예: 홍길동" autocomplete="off"></div>
+        <div class="vi"><label>연락처</label><input type="tel" id="res_phone" placeholder="예: 010-1234-5678" oninput="fmtPhone(this)" maxlength="13"></div>
+        <div class="vi" style="grid-column:1/-1;">
+          <label>입실 · 퇴실 날짜</label>
+          <div class="date-range-btn" id="resDateBtn" onclick="openResDatePicker()">
+            <div class="drb-placeholder">📅 날짜를 선택하세요</div>
+          </div>
+          <input type="hidden" id="res_checkin">
+          <input type="hidden" id="res_checkout">
+        </div>
+        <div class="vi-row2">
+          <div class="vi">
+            <label>총인원</label>
+            <select id="res_guests">
+              <option value="">선택</option>
+              <option>1명</option><option>2명</option><option>3명</option><option>4명</option>
+              <option>5명</option><option>6명</option><option>7명</option><option>8명</option>
+            </select>
+          </div>
+          <div class="vi"><label>숙박금액</label><input type="tel" id="res_price" placeholder="직접 입력" oninput="fmtPrice(this)"></div>
+        </div>
       </div>
-      <input type="hidden" id="res_checkin">
-      <input type="hidden" id="res_checkout">
-    </div>
-    <div class="vi-row2" style="margin-bottom:10px;">
-      <div class="vi">
-        <label>인원</label>
-        <select id="res_guests">
-          <option value="">-</option>
-          <option>1명</option><option>2명</option><option>3명</option><option>4명</option>
-          <option>5명</option><option>6명</option><option>7명</option><option>8명</option>
-        </select>
-      </div>
-      <div class="vi">
-        <label>숙박금액</label>
-        <input type="tel" id="res_price" placeholder="자동계산" oninput="fmtPrice(this)">
-      </div>
-    </div>
-    <div class="vi" style="margin-bottom:10px;">
-      <label>메모</label>
-      <input type="text" id="res_note" placeholder="특이사항 등">
+      <div class="vi" style="margin-top:10px;"><label>메모</label><input type="text" id="res_note" placeholder="특이사항, 요청사항 등"></div>
     </div>
     <input type="hidden" id="res_id">
-    <div style="display:flex;gap:8px;margin-top:14px;">
-      <button class="btn btn-dark" style="flex:1;" onclick="saveRes()">💾 저장</button>
-      <button class="btn btn-del" id="resDelBtn" onclick="deleteRes()" style="display:none;">삭제</button>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-dark" style="flex:1;padding:13px;" onclick="saveRes()">💾 저장</button>
+      <button class="btn btn-del" id="resDelBtn" onclick="deleteRes()" style="display:none;padding:13px 18px;">삭제</button>
     </div>
   </div>
 </div>
@@ -1464,9 +1467,12 @@ function saveReservations(){localStorage.setItem(SK_RES,JSON.stringify(reservati
 const RES_COLORS=['#FF6B4A','#3B82F6','#10B981','#8B5CF6','#F59E0B','#EC4899','#06B6D4','#EF4444'];
 function resColor(id){const n=parseInt(id||'0',36)||0;return RES_COLORS[n%RES_COLORS.length];}
 
+let _selectedDay=null;
+
 function calMonthNav(d){
-  if(d===0){_mcal.y=new Date().getFullYear();_mcal.m=new Date().getMonth();}
-  else{_mcal.m+=d;if(_mcal.m<0){_mcal.m=11;_mcal.y--;}if(_mcal.m>11){_mcal.m=0;_mcal.y++;}}
+  _mcal.m+=d;
+  if(_mcal.m<0){_mcal.m=11;_mcal.y--;}
+  if(_mcal.m>11){_mcal.m=0;_mcal.y++;}
   renderCalPage();
 }
 
@@ -1474,7 +1480,8 @@ function renderCalPage(){
   const y=_mcal.y,m=_mcal.m;
   document.getElementById('calMonthLabel').textContent=`${y}년 ${_MN[m]}`;
   _renderMonthGrid(y,m);
-  _renderResList();
+  if(_selectedDay)_renderDayDetail(_selectedDay);
+  else _renderResList();
 }
 
 function _renderMonthGrid(y,m){
@@ -1483,65 +1490,120 @@ function _renderMonthGrid(y,m){
   const days=new Date(y,m+1,0).getDate();
   const DOW=['일','월','화','수','목','금','토'];
   let html=DOW.map(d=>`<div class="month-dow">${d}</div>`).join('');
-  // prev month fill
   const prevDays=new Date(y,m,0).getDate();
   for(let i=first-1;i>=0;i--){
-    html+=`<div class="month-day other-month"><div class="md-num">${prevDays-i}</div></div>`;
+    html+=`<div class="month-day other-month"><div class="md-num"><span class="md-num-inner">${prevDays-i}</span></div></div>`;
   }
   for(let d=1;d<=days;d++){
     const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dow=(first+d-1)%7;
     const isToday=ds===today;
+    const isSel=ds===_selectedDay;
     const dayRes=reservations.filter(r=>r.ci&&r.co&&ds>=r.ci&&ds<r.co);
-    const classes=['month-day',dow===0?'sun':dow===6?'sat':'',isToday?'today':''].filter(Boolean).join(' ');
-    const bars=dayRes.slice(0,2).map(r=>`<div class="res-bar" style="background:${resColor(r.id)};"></div>`).join('');
-    html+=`<div class="${classes}" onclick="calDayClick('${ds}')">
-      <div class="md-num">${d}</div>${bars}
-      ${dayRes.length>2?`<div style="font-size:8px;text-align:center;color:var(--ink-light);">+${dayRes.length-2}</div>`:''}
+    const cls=['month-day',dow===0?'sun':dow===6?'sat':'',isToday?'today':'',isSel?'selected':''].filter(Boolean).join(' ');
+    // chips: ci day shows name, mid/co days show thin bar
+    const chips=dayRes.slice(0,3).map(r=>{
+      const isCi=r.ci===ds;
+      const isCo=new Date(r.co)-new Date(ds)===86400000; // last night
+      const chipCls=isCi?'ci-day':(isCo?'co-day':'mid-day');
+      const label=isCi?(r.name||'손님').slice(0,5):'';
+      return `<div class="res-chip ${chipCls}" style="background:${resColor(r.id)};">${label}</div>`;
+    }).join('');
+    const more=dayRes.length>3?`<div class="res-more">+${dayRes.length-3}</div>`:'';
+    html+=`<div class="${cls}" onclick="calDayClick('${ds}')">
+      <div class="md-num"><span class="md-num-inner">${d}</span></div>
+      ${chips}${more}
     </div>`;
   }
-  // next month fill
   const total=first+days;const rem=total%7===0?0:7-(total%7);
-  for(let i=1;i<=rem;i++)html+=`<div class="month-day other-month"><div class="md-num">${i}</div></div>`;
+  for(let i=1;i<=rem;i++)html+=`<div class="month-day other-month"><div class="md-num"><span class="md-num-inner">${i}</span></div></div>`;
   document.getElementById('monthGrid').innerHTML=html;
+}
+
+function calDayClick(ds){
+  if(_selectedDay===ds){_selectedDay=null;_renderMonthGrid(_mcal.y,_mcal.m);_renderResList();return;}
+  _selectedDay=ds;
+  _renderMonthGrid(_mcal.y,_mcal.m);
+  _renderDayDetail(ds);
+}
+
+function _renderDayDetail(ds){
+  const dayRes=reservations.filter(r=>r.ci&&r.co&&ds>=r.ci&&ds<r.co);
+  const detailEl=document.getElementById('calDayDetail');
+  const listEl=document.getElementById('resList');
+  const mm=ds.slice(5,7),dd=ds.slice(8,10);
+  const dow=new Date(ds+'T00:00:00').getDay();
+  const dowNames=['일','월','화','수','목','금','토'];
+  if(!dayRes.length){
+    detailEl.style.display='block';
+    detailEl.innerHTML=`<div class="res-list" style="margin-bottom:12px;">
+      <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:14px;font-weight:700;color:var(--ink);">${mm}월 ${dd}일 (${dowNames[dow]})</span>
+        <button onclick="openResModal(null,'${ds}')" class="cal-add-btn" style="font-size:11px;padding:6px 12px;">+ 예약 추가</button>
+      </div>
+      <div class="res-empty" style="padding:16px;">이 날짜에 예약이 없어요</div>
+    </div>`;
+    listEl.style.display='none';
+    return;
+  }
+  const items=dayRes.map(r=>{
+    const nights=r.ci&&r.co?Math.round((new Date(r.co)-new Date(r.ci))/86400000):'';
+    const ciStr=r.ci?r.ci.slice(5).replace('-','.'):'';
+    const coStr=r.co?r.co.slice(5).replace('-','.'):'';
+    const price=r.price?parseNum(r.price).toLocaleString('ko-KR')+'원':'';
+    return `<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;cursor:pointer;" onclick="openResModal('${r.id}')">
+      <div style="width:5px;border-radius:3px;background:${resColor(r.id)};flex-shrink:0;align-self:stretch;"></div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;color:var(--ink);">${r.name||'이름 없음'}${r.guests?' · '+r.guests:''}</div>
+        <div style="font-size:11px;color:var(--ink-light);margin-top:3px;">${ciStr} → ${coStr}${nights?' · '+nights+'박':''}</div>
+        ${r.note?`<div style="font-size:11px;color:var(--ink-light);margin-top:2px;">📝 ${r.note}</div>`:''}
+      </div>
+      ${price?`<div style="font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;align-self:center;">${price}</div>`:''}
+    </div>`;
+  }).join('');
+  detailEl.style.display='block';
+  detailEl.innerHTML=`<div class="res-list" style="margin-bottom:12px;">
+    <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+      <span style="font-size:14px;font-weight:700;color:var(--ink);">${mm}월 ${dd}일 (${dowNames[dow]}) · ${dayRes.length}건</span>
+      <button onclick="openResModal(null,'${ds}')" class="cal-add-btn" style="font-size:11px;padding:6px 12px;">+ 추가</button>
+    </div>
+    ${items}
+  </div>`;
+  listEl.style.display='none';
 }
 
 function _renderResList(){
   const today=new Date().toISOString().slice(0,10);
-  const upcoming=reservations.filter(r=>r.co>=today).sort((a,b)=>a.ci<b.ci?-1:1);
-  const el=document.getElementById('resList');
-  if(!upcoming.length){el.innerHTML=`<div class="res-list"><div class="res-empty">예약이 없어요<br><span style="font-size:11px;">+ 예약 버튼으로 추가하세요</span></div></div>`;return;}
-  const items=upcoming.map(r=>{
-    const ci=r.ci?r.ci.slice(5).replace('-','.'):'?';
-    const co=r.co?r.co.slice(5).replace('-','.'):'?';
+  const detailEl=document.getElementById('calDayDetail');
+  detailEl.style.display='none';
+  const listEl=document.getElementById('resList');
+  const all=reservations.filter(r=>r.co>=today).sort((a,b)=>a.ci<b.ci?-1:1);
+  if(!all.length){
+    listEl.innerHTML=`<div class="res-list"><div class="res-empty">예약이 없어요<br><span style="font-size:11px;">날짜를 누르거나 + 예약 버튼으로 추가하세요</span></div></div>`;
+    listEl.style.display='block';return;
+  }
+  const items=all.map(r=>{
+    const ciStr=r.ci?r.ci.slice(5).replace('-','.'):'?';
+    const coStr=r.co?r.co.slice(5).replace('-','.'):'?';
     const nights=r.ci&&r.co?Math.round((new Date(r.co)-new Date(r.ci))/86400000)+'박':'';
     const price=r.price?parseNum(r.price).toLocaleString('ko-KR')+'원':'';
+    const isNow=r.ci<=today&&r.co>today;
     return `<div class="res-item" onclick="openResModal('${r.id}')">
       <div class="res-item-color" style="background:${resColor(r.id)};"></div>
       <div class="res-item-info">
-        <div class="res-item-name">${r.name||'이름 없음'}${r.guests?' · '+r.guests:''}</div>
-        <div class="res-item-dates">${ci} → ${co}${nights?' ('+nights+')':''}</div>
+        <div class="res-item-name">${isNow?'🏠 ':''}<b>${r.name||'이름 없음'}</b>${r.guests?' · '+r.guests:''}</div>
+        <div class="res-item-dates">${ciStr} → ${coStr}${nights?' ('+nights+')':''}</div>
+        ${r.note?`<div style="font-size:10px;color:var(--ink-light);">📝 ${r.note}</div>`:''}
       </div>
       ${price?`<div class="res-item-price">${price}</div>`:''}
     </div>`;
   }).join('');
-  el.innerHTML=`<div class="res-list"><div class="res-list-head">다가오는 예약 · ${upcoming.length}건</div>${items}</div>`;
+  listEl.innerHTML=`<div class="res-list"><div class="res-list-head">예약 목록 · ${all.length}건</div>${items}</div>`;
+  listEl.style.display='block';
 }
 
-function calDayClick(ds){
-  const dayRes=reservations.filter(r=>r.ci&&r.co&&ds>=r.ci&&ds<r.co);
-  if(dayRes.length===1){openResModal(dayRes[0].id);return;}
-  if(dayRes.length>1){
-    const names=dayRes.map(r=>r.name||'이름 없음').join(', ');
-    if(confirm(`${ds.slice(5).replace('-','.')} 예약: ${names}\n\n첫 번째 예약을 여시겠어요?`))openResModal(dayRes[0].id);
-    return;
-  }
-  // No reservation - open new with date pre-filled
-  openResModal(null,ds);
-}
-
+/* 예약 패널 열기/닫기 */
 function openResModal(id,prefillDate){
-  const m=document.getElementById('resModalOv');
   const isNew=!id;
   document.getElementById('resModalTitle').textContent=isNew?'새 예약':'예약 수정';
   document.getElementById('resDelBtn').style.display=isNew?'none':'';
@@ -1556,24 +1618,51 @@ function openResModal(id,prefillDate){
     document.getElementById('res_checkout').value='';
     _resCalState.ci=prefillDate||null;_resCalState.co=null;
   } else {
-    const r=reservations.find(x=>x.id===id);
-    if(!r)return;
+    const r=reservations.find(x=>x.id===id);if(!r)return;
     document.getElementById('res_name').value=r.name||'';
     document.getElementById('res_phone').value=r.phone||'';
     document.getElementById('res_guests').value=r.guests||'';
-    const p=r.price?parseNum(r.price).toLocaleString('ko-KR')+'원':'';
-    document.getElementById('res_price').value=p;
+    document.getElementById('res_price').value=r.price?parseNum(r.price).toLocaleString('ko-KR')+'원':'';
     document.getElementById('res_note').value=r.note||'';
     document.getElementById('res_checkin').value=r.ci||'';
     document.getElementById('res_checkout').value=r.co||'';
     _resCalState.ci=r.ci||null;_resCalState.co=r.co||null;
   }
   _resUpdateDateBtn();
-  m.classList.add('open');
+  document.getElementById('resOverlay').classList.add('open');
+  document.getElementById('resPanel').classList.add('open');
 }
-function closeResModal(){document.getElementById('resModalOv').classList.remove('open');}
+function closeResModal(){
+  document.getElementById('resOverlay').classList.remove('open');
+  document.getElementById('resPanel').classList.remove('open');
+}
 
-// Reservation date picker state
+/* 문자 탭 → 캘린더 저장 */
+function saveToCalendar(){
+  const name=document.getElementById('v_name').value.trim();
+  const ci=document.getElementById('v_checkin').value;
+  const co=document.getElementById('v_checkout').value;
+  if(!name||!ci||!co){toast('이름과 날짜를 먼저 입력해 주세요');return;}
+  const dup=reservations.find(r=>r.name===name&&r.ci===ci&&r.co===co);
+  if(dup){toast('이미 저장된 예약이에요 ✓');return;}
+  const phone=document.getElementById('v_phone').value;
+  const guests=document.getElementById('v_guests').value;
+  const price=document.getElementById('v_price').value.replace(/[^0-9]/g,'');
+  reservations.push({id:Date.now().toString(36),name,phone,guests,price,note:'',ci,co});
+  saveReservations();
+  const btn=document.getElementById('calSaveBtn');
+  if(btn){btn.textContent='✅ 캘린더에 저장됐어요';setTimeout(()=>{btn.textContent='📅 캘린더에 저장';},2000);}
+  toast('캘린더에 저장됐어요 📅');
+}
+function _updateCalSaveBtn(){
+  const btn=document.getElementById('calSaveBtn');if(!btn)return;
+  const name=document.getElementById('v_name')?.value.trim();
+  const ci=document.getElementById('v_checkin')?.value;
+  const co=document.getElementById('v_checkout')?.value;
+  btn.style.display=(name&&ci&&co)?'block':'none';
+}
+
+/* 예약 날짜 피커 */
 let _resCalState={ci:null,co:null,step:'ci',y:0,m:0,ym:false};
 function openResDatePicker(){
   const today=new Date();
@@ -1589,11 +1678,11 @@ function _renderResCal(){
   const existing=document.getElementById('_resCalModal');if(existing)existing.remove();
   const el=document.createElement('div');
   el.id='_resCalModal';
-  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;display:flex;align-items:flex-end;justify-content:center;';
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;display:flex;align-items:flex-end;justify-content:center;';
   const hint=_resCalState.step==='ci'?'입실 날짜를 선택하세요':'퇴실 날짜를 선택하세요';
   el.innerHTML=`<div style="background:white;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:18px 14px 28px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <button style="background:none;border:none;font-size:22px;color:var(--ink-light);cursor:pointer;padding:4px 10px;" onclick="(function(){const m=document.getElementById('_resCalModal');if(m)m.remove();})()">✕</button>
+      <button style="background:none;border:none;font-size:22px;color:var(--ink-light);cursor:pointer;padding:4px 10px;" onclick="document.getElementById('_resCalModal').remove()">✕</button>
       <span style="font-size:13px;font-weight:600;color:var(--accent);">${hint}</span>
       <div style="width:46px;"></div>
     </div>
@@ -1646,33 +1735,14 @@ function _resCalConfirm(){
 function _resUpdateDateBtn(){
   const ci=document.getElementById('res_checkin').value;
   const co=document.getElementById('res_checkout').value;
-  const btn=document.getElementById('resDateBtn');
-  if(!btn)return;
+  const btn=document.getElementById('resDateBtn');if(!btn)return;
   if(ci&&co){
     const n=Math.round((new Date(co)-new Date(ci))/86400000);
     const cp=_dateParts(ci);const cop=_dateParts(co);
-    btn.innerHTML=`
-      <div class="drb-side ci">
-        <span class="drb-label">📅 입실</span>
-        <span class="drb-date">${cp.date}</span>
-        <span class="drb-sub">${cp.dow}요일 · <span style="color:${cp.color};font-weight:600">${cp.tag}</span></span>
-      </div>
-      <div class="drb-mid"><span class="drb-arrow">→</span><span class="drb-nights">${n}박</span></div>
-      <div class="drb-side">
-        <span class="drb-label">🚪 퇴실</span>
-        <span class="drb-date">${cop.date}</span>
-        <span class="drb-sub">${cop.dow}요일 · <span style="color:${cop.color};font-weight:600">${cop.tag}</span></span>
-      </div>`;
+    btn.innerHTML=`<div class="drb-side ci"><span class="drb-label">📅 입실</span><span class="drb-date">${cp.date}</span><span class="drb-sub">${cp.dow}요일 · <span style="color:${cp.color};font-weight:600">${cp.tag}</span></span></div><div class="drb-mid"><span class="drb-arrow">→</span><span class="drb-nights">${n}박</span></div><div class="drb-side"><span class="drb-label">🚪 퇴실</span><span class="drb-date">${cop.date}</span><span class="drb-sub">${cop.dow}요일 · <span style="color:${cop.color};font-weight:600">${cop.tag}</span></span></div>`;
   } else if(ci){
     const cp=_dateParts(ci);
-    btn.innerHTML=`
-      <div class="drb-side ci">
-        <span class="drb-label">📅 입실</span>
-        <span class="drb-date">${cp.date}</span>
-        <span class="drb-sub">${cp.dow}요일 · <span style="color:${cp.color};font-weight:600">${cp.tag}</span></span>
-      </div>
-      <div class="drb-mid"><span class="drb-arrow">→</span></div>
-      <div class="drb-side"><span class="drb-label" style="color:#C7C7CC;">🚪 퇴실</span><span class="drb-date" style="color:#C7C7CC;">미선택</span></div>`;
+    btn.innerHTML=`<div class="drb-side ci"><span class="drb-label">📅 입실</span><span class="drb-date">${cp.date}</span><span class="drb-sub">${cp.dow}요일</span></div><div class="drb-mid"><span class="drb-arrow">→</span></div><div class="drb-side"><span class="drb-label" style="color:#C7C7CC;">🚪 퇴실</span><span class="drb-date" style="color:#C7C7CC;">미선택</span></div>`;
   } else {
     btn.innerHTML=`<div class="drb-placeholder">📅 날짜를 선택하세요</div>`;
   }
@@ -1695,13 +1765,18 @@ function saveRes(){
   } else {
     reservations.push({id:Date.now().toString(36),name,phone,guests,price,note,ci,co});
   }
-  saveReservations();closeResModal();renderCalPage();
+  saveReservations();closeResModal();
+  // 저장한 달로 이동
+  if(ci){_mcal.y=parseInt(ci.slice(0,4));_mcal.m=parseInt(ci.slice(5,7))-1;}
+  _selectedDay=ci||null;
+  renderCalPage();
   toast('예약이 저장됐어요 ✓');
 }
 function deleteRes(){
   const id=document.getElementById('res_id').value;
   if(!id||!confirm('이 예약을 삭제할까요?'))return;
   reservations=reservations.filter(r=>r.id!==id);
+  _selectedDay=null;
   saveReservations();closeResModal();renderCalPage();
   toast('예약이 삭제됐어요');
 }
@@ -1978,7 +2053,7 @@ function buildGuestHtml(matched){
   }).join('');
 }
 function onNameInput(){
-  renderAll();
+  renderAll();_updateCalSaveBtn();
   const q=document.getElementById('v_name').value.trim();
   const dd=document.getElementById('guestDropdown');
   if(q.length<2){dd.classList.remove('open');return;}
@@ -2282,6 +2357,7 @@ function _updateDateDisplay(){
   } else {
     btn.innerHTML=`<div class="drb-placeholder">📅 날짜를 선택하세요</div>`;
   }
+  _updateCalSaveBtn();
 }
 
 async function forceUpdate(){
