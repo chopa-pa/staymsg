@@ -942,20 +942,19 @@ function getDayType(dateStr){
       }
 
       // 주중/주말 둘 다 설정된 경우 → 구분 표시
+      const pl=`(${periodLabel})`;
       if(hasPw&&hasPwe){
         return isWe
-          ?{type:found.type,price:parseNum(rawPwe),label:periodLabel+' 주말'}
-          :{type:found.type,price:parseNum(rawPw),label:periodLabel+' 주중'};
+          ?{type:found.type,price:parseNum(rawPwe),label:pl+' 주말'}
+          :{type:found.type,price:parseNum(rawPw),label:pl+' 주중'};
       }
 
-      // 주중만 설정 → 주말도 주중 금액 사용
       if(hasPw){
-        return {type:found.type,price:parseNum(rawPw),label:periodLabel};
+        return {type:found.type,price:parseNum(rawPw),label:pl};
       }
 
-      // 주말만 설정 → 주말은 설정값, 주중은 기본 요금
       return isWe
-        ?{type:found.type,price:parseNum(rawPwe),label:periodLabel+' 주말'}
+        ?{type:found.type,price:parseNum(rawPwe),label:pl+' 주말'}
         :{type:'weekday',price:regWd,label:'주중'};
     }
   }
@@ -1038,67 +1037,78 @@ function calcNights(startStr,endStr,guestStr,childCnt,dogCnt,bbq){
 
 function buildBreakdownHtml(res,compact){
   if(!res)return'';
-  const typeColor={weekday:'#5B8DB8',weekend:'#C05A1F',peak:'#C04040',semi:'#B8734A',special:'#6B5B8B',discount:'#4A6741'};
-  const R='display:grid;grid-template-columns:3em 1fr auto;gap:0 6px;padding:6px 0;border-bottom:1px dashed var(--border);align-items:center;font-size:12px;';
+  const TC={
+    weekday: {bg:'#EBF3FB',c:'#2E6DA4'},
+    weekend: {bg:'#FEF0E6',c:'#C05A1F'},
+    peak:    {bg:'#FDEAEA',c:'#C03030'},
+    semi:    {bg:'#FEF3E6',c:'#B06020'},
+    special: {bg:'#F0EBFB',c:'#6040B0'},
+    discount:{bg:'#E8F6EE',c:'#2E7D50'},
+  };
+  const badge=(label,type)=>{
+    const t=TC[type]||{bg:'#F0F0F0',c:'#555'};
+    return `<span style="display:inline-block;background:${t.bg};color:${t.c};font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap;">${label}</span>`;
+  };
+  const R='display:grid;grid-template-columns:auto 1fr auto;gap:0 8px;padding:7px 0;border-bottom:1px solid #F0F0F0;align-items:center;';
+  const amtStyle=(c,prefix='')=>`color:${c};font-weight:600;font-size:13px;text-align:right;white-space:nowrap;`;
+
   let rows=res.breakdown.map(b=>{
-    const c=typeColor[b.type]||'#888';
-    const nights=b.nights+'박'+(b.nights>1&&b.price?' · '+b.price.toLocaleString('ko-KR')+'원':'');
+    const c=(TC[b.type]||{c:'#555'}).c;
+    const detail=b.nights+'박'+(b.nights>1&&b.price?' · '+b.price.toLocaleString('ko-KR')+'원':'');
     return `<div style="${R}">
-      <span style="color:${c};font-weight:600">${b.label}</span>
-      <span style="color:var(--ink-light);font-size:11px">${nights}</span>
-      <span style="text-align:right;font-weight:500">${b.subtotal?b.subtotal.toLocaleString('ko-KR')+'원':'—'}</span>
+      ${badge(b.label,b.type)}
+      <span style="color:#8E8E93;font-size:11px;">${detail}</span>
+      <span style="${amtStyle(c)}">${b.subtotal?b.subtotal.toLocaleString('ko-KR')+'원':'—'}</span>
     </div>`;
   }).join('');
+
   const discRow=res.discount>0?`<div style="${R}">
-    <span style="color:#C05A1F;font-weight:600">할인</span>
-    <span style="color:var(--ink-light);font-size:11px">연박 할인</span>
-    <span style="color:#C05A1F;font-weight:500;text-align:right">-${res.discount.toLocaleString('ko-KR')}원</span>
+    ${badge('연박할인','discount')}
+    <span style="color:#8E8E93;font-size:11px;">${res.nights}박 적용</span>
+    <span style="${amtStyle('#2E7D50')}">-${res.discount.toLocaleString('ko-KR')}원</span>
   </div>`:'';
-  const extraRow=res.extraGuestCost>0?(()=>{
-    const perNight=(res.extraGuestCost/res.nights).toLocaleString('ko-KR');
-    return `<div style="${R}">
-      <span style="color:#6B5B8B;font-weight:600">추가</span>
-      <span style="color:var(--ink-light);font-size:11px">${perNight}원 × ${res.nights}박</span>
-      <span style="color:#6B5B8B;font-weight:500;text-align:right">+${res.extraGuestCost.toLocaleString('ko-KR')}원</span>
-    </div>`;
-  })():'';
-  const childRow=res.showChild?(()=>{
-    const childPP=parseNum(settings.child_pp);
-    const perNight=childPP.toLocaleString('ko-KR');
-    const total=res.childCost.toLocaleString('ko-KR');
-    return `<div style="${R}">
-      <span style="color:#4A90A4;font-weight:600">아동</span>
-      <span style="color:var(--ink-light);font-size:11px">${perNight}원 × ${res.nights}박</span>
-      <span style="color:#4A90A4;font-weight:500;text-align:right">+${total}원</span>
-    </div>`;
-  })():'';
+
+  const extraRow=res.extraGuestCost>0?`<div style="${R}">
+    ${badge('추가인원','special')}
+    <span style="color:#8E8E93;font-size:11px;">${(res.extraGuestCost/res.nights).toLocaleString('ko-KR')}원 × ${res.nights}박</span>
+    <span style="${amtStyle('#6040B0')}">+${res.extraGuestCost.toLocaleString('ko-KR')}원</span>
+  </div>`:'';
+
+  const childRow=res.showChild?`<div style="${R}">
+    ${badge('👶 미취학아동','special')}
+    <span style="color:#8E8E93;font-size:11px;">${parseNum(settings.child_pp).toLocaleString('ko-KR')}원 × ${res.nights}박</span>
+    <span style="${amtStyle('#6040B0')}">+${res.childCost.toLocaleString('ko-KR')}원</span>
+  </div>`:'';
+
   const dogRow=res.dogCost>0?(()=>{
     const isFlat=settings.dog_fee_type==='flat';
-    const detail=isFlat?`${(res.dogCost).toLocaleString('ko-KR')}원 (전체 1회)`:`${(res.dogCost/res.nights).toLocaleString('ko-KR')}원 × ${res.nights}박`;
+    const detail=isFlat?`${res.dogCost.toLocaleString('ko-KR')}원 (1회)`:`${(res.dogCost/res.nights).toLocaleString('ko-KR')}원 × ${res.nights}박`;
     return `<div style="${R}">
-      <span style="color:#8B6914;font-weight:600">🐶</span>
-      <span style="color:var(--ink-light);font-size:11px">${detail}</span>
-      <span style="color:#8B6914;font-weight:500;text-align:right">+${res.dogCost.toLocaleString('ko-KR')}원</span>
+      ${badge('🐶 강아지','weekend')}
+      <span style="color:#8E8E93;font-size:11px;">${detail}</span>
+      <span style="${amtStyle('#C05A1F')}">+${res.dogCost.toLocaleString('ko-KR')}원</span>
     </div>`;
   })():'';
+
   const bbqRow=res.bbq&&settings.bbq_allow&&parseNum(settings.bbq_price)>0?(()=>{
     const p=parseNum(settings.bbq_price).toLocaleString('ko-KR');
     const isSep=res.bbqSeparate;
     return `<div style="${R}">
-      <span style="color:#C04A00;font-weight:600">🔥</span>
-      <span style="color:var(--ink-light);font-size:11px">바베큐${isSep?' (따로 결제)':''}</span>
-      <span style="color:${isSep?'var(--ink-light)':'#C04A00'};font-weight:500;text-align:right;${isSep?'text-decoration:line-through;opacity:0.6':''}">+${p}원</span>
+      ${badge('🔥 바베큐','peak')}
+      <span style="color:#8E8E93;font-size:11px;">${isSep?'따로 결제':''}</span>
+      <span style="color:${isSep?'#C7C7CC':'#C03030'};font-weight:600;font-size:13px;text-align:right;${isSep?'text-decoration:line-through;':''}">+${p}원</span>
     </div>`;
   })():'';
+
   const finalStr=res.finalTotal?res.finalTotal.toLocaleString('ko-KR')+'원':'요금 미설정';
-  const TR='display:grid;grid-template-columns:3em 1fr auto;gap:0 6px;padding:8px 0 2px;align-items:baseline;border-top:1.5px solid var(--border);margin-top:2px;';
-  const totalRow=`<div style="${TR}">
-    <span style="color:var(--ink);font-weight:700;font-size:13px">합계</span>
-    <span style="color:var(--ink-light);font-size:11px">${res.nights}박</span>
-    <span style="color:var(--green);font-weight:700;font-size:15px;text-align:right">${finalStr}</span>
+  const totalRow=`<div style="display:grid;grid-template-columns:auto 1fr auto;gap:0 8px;padding:10px 0 2px;align-items:baseline;border-top:2px solid #E5E5EA;margin-top:2px;">
+    <span style="font-size:13px;font-weight:700;color:#1C1C1E;">합계</span>
+    <span style="color:#8E8E93;font-size:11px;">${res.nights}박</span>
+    <span style="color:#34C759;font-weight:700;font-size:16px;text-align:right;">${finalStr}</span>
   </div>`;
+
   if(compact){
-    return `<div style="font-size:11px;color:var(--green);font-weight:500;margin-bottom:4px">${res.nights}박 자동 계산됐어요</div>${rows}${discRow}${extraRow}${childRow}${dogRow}${bbqRow}${totalRow}`;
+    return `<div style="font-size:11px;color:#34C759;font-weight:600;margin-bottom:6px;">✓ ${res.nights}박 자동 계산됐어요</div>${rows}${discRow}${extraRow}${childRow}${dogRow}${bbqRow}${totalRow}`;
   }
   return rows+discRow+extraRow+childRow+dogRow+bbqRow+totalRow;
 }
