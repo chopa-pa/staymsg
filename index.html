@@ -174,6 +174,19 @@ header p{font-size:10px;color:var(--ink-light);margin-top:2px;}
 .sm-lbl{color:#B06020;font-weight:700;}
 .sp-lbl{color:#6040B0;font-weight:700;}
 .dc-lbl{color:#2E7D50;font-weight:700;}
+.cal-day.pk-bg{background:rgba(192,48,48,0.10);}
+.cal-day.sm-bg{background:rgba(176,96,32,0.10);}
+.cal-day.sp-bg{background:rgba(96,64,176,0.10);}
+.cal-day.dc-bg{background:rgba(46,125,80,0.10);}
+.month-day.pk-bg{background:rgba(192,48,48,0.09);}
+.month-day.sm-bg{background:rgba(176,96,32,0.09);}
+.month-day.sp-bg{background:rgba(96,64,176,0.09);}
+.month-day.dc-bg{background:rgba(46,125,80,0.09);}
+.month-day.selected.pk-bg,.month-day.selected.sm-bg,.month-day.selected.sp-bg,.month-day.selected.dc-bg{background:#FFF5F3;}
+.cal-legend{display:flex;flex-wrap:wrap;gap:6px 10px;padding:8px 2px 0;margin-top:4px;}
+.cal-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--ink-light);}
+.cal-legend-swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+#calLegend .cal-legend{padding:6px 12px 2px;}
 .is-desktop .date-ico{display:none;}
 .is-mobile .var-grid{grid-template-columns:1fr;}
 .vi-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;grid-column:1/-1;}
@@ -536,6 +549,7 @@ input{text-overflow:ellipsis;}
     <button class="cal-add-btn" onclick="openResModal(null)">+ 예약</button>
   </div>
   <div id="monthGrid" class="month-grid"></div>
+  <div id="calLegend"></div>
   <!-- 선택된 날짜 예약 상세 -->
   <div id="calDayDetail" style="display:none;"></div>
   <!-- 전체 예약 목록 -->
@@ -1391,8 +1405,6 @@ function _pcalGridHtml(){
   const today=new Date().toISOString().slice(0,10);
   const firstDow=new Date(y,m,1).getDay();
   const daysInM=new Date(y,m+1,0).getDate();
-  const PT_CLS={peak:'pk-lbl',semi:'sm-lbl',special:'sp-lbl',discount:'dc-lbl'};
-  const PT_LBL={peak:'성수기',semi:'준성수기',special:'특별',discount:'할인'};
   let cells='';
   ['일','월','화','수','목','금','토'].forEach((d,i)=>{
     cells+=`<div class="cal-dow" style="${i===0?'color:#EF4444':i===6?'color:#3B82F6':''}">${d}</div>`;
@@ -1405,27 +1417,26 @@ function _pcalGridHtml(){
     const isToday=ds===today;
     const isCi=ds===_pcal.ci;const isCo=ds===_pcal.co;
     const inR=_pcal.ci&&_pcal.co&&ds>_pcal.ci&&ds<_pcal.co;
-    // 특별기간 확인
-    const period=periods.find(p=>ds>=p.start&&ds<=p.end);
     let cls='cal-day';
     if(isCi)cls+=' cal-sel cal-ci';
     else if(isCo)cls+=' cal-sel cal-co';
     else if(inR)cls+=' cal-range';
+    else{const bgc=_periodBgCls(ds);if(bgc)cls+=' '+bgc;}
     if(isToday&&!isCi&&!isCo)cls+=' cal-today';
     const lbl=isCi?'<small>입실</small>':isCo?'<small>퇴실</small>'
       :isToday?'<small style="color:var(--accent)">오늘</small>'
-      :period?`<small class="${PT_CLS[period.type]||'pk-lbl'}">${period.label||PT_LBL[period.type]||'특별'}</small>`
       :isWe?'<small class="we-lbl">주말</small>'
       :isSun?'<small class="su-lbl">일</small>'
       :'<small class="wd-lbl">주중</small>';
     cells+=`<div class="${cls}" onclick="_pcalPickDate('${ds}')"><span>${d}</span>${lbl}</div>`;
   }
+  const legend=_calLegendHtml(y,m);
   return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
     <button class="cal-nav" onclick="_pcalNav(-1)">‹</button>
     <button class="cal-title-btn ${_pcal.ym?'ym-open':''}" onclick="_pcal.ym=!_pcal.ym;_renderPCal();">${y}년 ${_MN[m]}</button>
     <button class="cal-nav" onclick="_pcalNav(1)">›</button>
   </div>
-  <div class="cal-grid">${cells}</div>`;
+  <div class="cal-grid">${cells}</div>${legend}`;
 }
 function _pcalNav(d){_pcal.m+=d;if(_pcal.m<0){_pcal.m=11;_pcal.y--;}if(_pcal.m>11){_pcal.m=0;_pcal.y++;}_renderPCal();}
 function _pcalPickDate(ds){
@@ -1535,8 +1546,6 @@ function _renderMonthGrid(y,m){
   for(let i=first-1;i>=0;i--){
     html+=`<div class="month-day other-month"><div class="md-num"><span class="md-num-inner">${prevDays-i}</span></div></div>`;
   }
-  const PT_CLS_M={peak:'pk-lbl',semi:'sm-lbl',special:'sp-lbl',discount:'dc-lbl'};
-  const PT_LBL_M={peak:'성수기',semi:'준성수기',special:'특별',discount:'할인'};
   for(let d=1;d<=days;d++){
     const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dow=(first+d-1)%7;
@@ -1544,12 +1553,9 @@ function _renderMonthGrid(y,m){
     const isSel=ds===_selectedDay;
     const isSun=dow===0;const isWe=dow===5||dow===6;
     const dayRes=reservations.filter(r=>r.ci&&r.co&&ds>=r.ci&&ds<r.co);
-    const cls=['month-day',isSun?'sun':isWe?'sat':'',isToday?'today':'',isSel?'selected':''].filter(Boolean).join(' ');
-    // period/day label
-    const period=periods.find(p=>['peak','semi','special','discount'].includes(p.type)&&ds>=p.start&&ds<=p.end);
-    const dayLbl=period
-      ?`<small class="${PT_CLS_M[period.type]||'pk-lbl'}">${period.label||PT_LBL_M[period.type]||'특별'}</small>`
-      :isWe?'<small class="we-lbl">주말</small>'
+    const bgc=!isSel?_periodBgCls(ds):'';
+    const cls=['month-day',isSun?'sun':isWe?'sat':'',isToday?'today':'',isSel?'selected':'',bgc].filter(Boolean).join(' ');
+    const dayLbl=isWe?'<small class="we-lbl">주말</small>'
       :isSun?'<small class="su-lbl">일</small>'
       :'<small class="wd-lbl">주중</small>';
     // chips: ci day shows name, mid/co days show thin bar
@@ -1569,6 +1575,8 @@ function _renderMonthGrid(y,m){
   const total=first+days;const rem=total%7===0?0:7-(total%7);
   for(let i=1;i<=rem;i++)html+=`<div class="month-day other-month"><div class="md-num"><span class="md-num-inner">${i}</span></div></div>`;
   document.getElementById('monthGrid').innerHTML=html;
+  const legendEl=document.getElementById('calLegend');
+  if(legendEl)legendEl.innerHTML=_calLegendHtml(y,m);
 }
 
 function calDayClick(ds){
@@ -1767,14 +1775,16 @@ function _resCalGridHtml(){
     else if(inRange){bg='#FFF0EB';color='var(--ink)';}
     else if(isToday){outline='2px solid var(--accent)';}
     if(!isCi&&!isCo){if(dow===0)color=color||'#EF4444';if(dow===6)color=color||'#3B82F6';}
+    if(!bg){const bgc=_periodBgCls(ds);if(bgc==='pk-bg')bg='rgba(192,48,48,0.10)';else if(bgc==='sm-bg')bg='rgba(176,96,32,0.10)';else if(bgc==='sp-bg')bg='rgba(96,64,176,0.10)';else if(bgc==='dc-bg')bg='rgba(46,125,80,0.10)';}
     cells+=`<div onclick="_resCalPickDate('${ds}')" style="text-align:center;padding:8px 2px;cursor:pointer;border-radius:${br||'8px'};background:${bg};color:${color||'var(--ink)'};font-weight:${fw||'500'};font-size:13px;${outline?'outline:'+outline+';':''}">${d}</div>`;
   }
+  const legend=_calLegendHtml(y,m);
   return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
     <button class="cal-nav" onclick="_resCalNav(-1)">‹</button>
     <span style="font-size:15px;font-weight:700;cursor:pointer;" onclick="_resCalState.ym=true;_renderResCal();">${y}년 ${_MN[m]}</span>
     <button class="cal-nav" onclick="_resCalNav(1)">›</button>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">${cells}</div>`;
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">${cells}</div>${legend}`;
 }
 function _resCalNav(d){_resCalState.m+=d;if(_resCalState.m<0){_resCalState.m=11;_resCalState.y--;}if(_resCalState.m>11){_resCalState.m=0;_resCalState.y++;}_renderResCal();}
 function _resCalPickDate(ds){
@@ -2293,6 +2303,21 @@ function _pfCalYearStep(d){_pfCal.y+=d;_pfRenderCal();}
 let _cal={ci:null,co:null,step:'ci',y:0,m:0,ym:false};
 const _MN=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
 
+const PT_BG={peak:'pk-bg',semi:'sm-bg',special:'sp-bg',discount:'dc-bg'};
+const PT_COLOR={peak:'#C03030',semi:'#B06020',special:'#6040B0',discount:'#2E7D50'};
+const PT_NAME={peak:'성수기',semi:'준성수기',special:'특별',discount:'할인'};
+function _periodBgCls(ds){
+  const p=periods.find(px=>['peak','semi','special','discount'].includes(px.type)&&ds>=px.start&&ds<=px.end);
+  return p?(PT_BG[p.type]||'pk-bg'):'';
+}
+function _calLegendHtml(y,m){
+  const first=`${y}-${String(m+1).padStart(2,'0')}-01`;
+  const last=`${y}-${String(m+1).padStart(2,'0')}-${new Date(y,m+1,0).getDate()}`;
+  const vis=periods.filter(p=>['peak','semi','special','discount'].includes(p.type)&&p.end>=first&&p.start<=last);
+  if(!vis.length)return '';
+  const items=vis.map(p=>`<span class="cal-legend-item"><span class="cal-legend-swatch" style="background:${PT_COLOR[p.type]||'#888'};"></span>${p.label||PT_NAME[p.type]||'특별'}</span>`).join('');
+  return `<div class="cal-legend">${items}</div>`;
+}
 function openDatePicker(){
   const today=new Date();
   _cal.y=today.getFullYear();_cal.m=today.getMonth();
@@ -2326,6 +2351,7 @@ function _renderCal(){
     else if(isCi)cls+=' cal-sel cal-ci';
     else if(isCo)cls+=' cal-sel cal-co';
     else if(inR)cls+=' cal-range';
+    else{const bgc=_periodBgCls(ds);if(bgc)cls+=' '+bgc;}
     if(isToday&&!isCi&&!isCo)cls+=' cal-today';
     const topLbl=isCi?'<small>입실</small>':isCo?'<small>퇴실</small>'
       :isToday?'<small style="color:var(--accent)">오늘</small>'
@@ -2336,8 +2362,9 @@ function _renderCal(){
   }
   const hint=step==='ci'?'입실 날짜를 선택하세요':'퇴실 날짜를 선택하세요 (입실: '+ci+')';
   const confirmBtn=ci&&co?`<button class="cal-confirm" onclick="_calConfirm()">확인 (${ci} → ${co})</button>`:'';
+  const legend=_calLegendHtml(y,m);
   const ymBody=_cal.ym?_ymPickerHtml(y,m,'_calSetYM','_calYearStep'):
-    `<div class="cal-hint">${hint}</div><div class="cal-grid">${cells}</div>`;
+    `<div class="cal-hint">${hint}</div><div class="cal-grid">${cells}</div>${legend}`;
   const el=document.createElement('div');
   el.id='_calModal';el.className='cal-ov';
   el.onclick=e=>{if(e.target===el)el.remove();};
@@ -2699,6 +2726,7 @@ function _pfRenderCal(){
     if(isCi)cls+=' cal-sel cal-ci';
     else if(isCo)cls+=' cal-sel cal-co';
     else if(inR)cls+=' cal-range';
+    else{const bgc=_periodBgCls(ds);if(bgc)cls+=' '+bgc;}
     if(isToday&&!isCi&&!isCo)cls+=' cal-today';
     const lbl=isCi?'<small>시작</small>':isCo?'<small>종료</small>'
       :isToday?'<small style="color:var(--accent)">오늘</small>'
@@ -2709,8 +2737,9 @@ function _pfRenderCal(){
   }
   const hint=step==='ci'?'시작일을 선택하세요':'종료일을 선택하세요 (시작: '+ci+')';
   const confirmBtn=ci&&co?`<button class="cal-confirm" onclick="_pfConfirm()">확인 (${ci} → ${co})</button>`:'';
+  const legend=_calLegendHtml(y,m);
   const ymBody=_pfCal.ym?_ymPickerHtml(y,m,'_pfCalSetYM','_pfCalYearStep'):
-    `<div class="cal-hint">${hint}</div><div class="cal-grid">${cells}</div>`;
+    `<div class="cal-hint">${hint}</div><div class="cal-grid">${cells}</div>${legend}`;
   const el=document.createElement('div');
   el.id='_pfCalModal';el.className='cal-ov';
   el.onclick=e=>{if(e.target===el)el.remove();};
