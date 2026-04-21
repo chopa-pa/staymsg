@@ -550,9 +550,9 @@ input{text-overflow:ellipsis;}
 <div class="page" id="page-cal">
   <div id="calRoomSel" class="room-sel" style="padding:4px 0 2px;"></div>
   <div class="cal-ph">
-    <button class="cal-ph-nav" onclick="calMonthNav(-1)">‹</button>
-    <span class="cal-ph-title" id="calMonthLabel"></span>
-    <button class="cal-ph-nav" onclick="calMonthNav(1)">›</button>
+    <button class="cal-ph-nav" id="calNavPrev" onclick="calMonthNav(-1)">‹</button>
+    <button class="cal-ph-title" id="calMonthLabel" onclick="openCalYmPicker()" style="background:none;border:none;cursor:pointer;font:inherit;"></button>
+    <button class="cal-ph-nav" id="calNavNext" onclick="calMonthNav(1)">›</button>
     <button class="cal-add-btn" onclick="openResModal(null)">+ 예약</button>
   </div>
   <div id="monthGrid" class="month-grid"></div>
@@ -1579,6 +1579,30 @@ function calMonthNav(d){
   renderCalPage();
 }
 
+let _mcalYm=false;
+function openCalYmPicker(){
+  _mcalYm=true;
+  _renderCalYmPicker();
+}
+function _calPageSetYM(y,m){_mcal.y=y;_mcal.m=m;_mcalYm=false;renderCalPage();}
+function _calPageYearStep(d){_mcal.y+=d;_renderCalYmPicker();}
+function _renderCalYmPicker(){
+  const old=document.getElementById('_calYmModal');if(old)old.remove();
+  const el=document.createElement('div');
+  el.id='_calYmModal';el.className='cal-ov';
+  el.onclick=e=>{if(e.target===el){_mcalYm=false;el.remove();}};
+  el.innerHTML=`<div class="cal-box">
+    <div class="cal-top">
+      <button class="cal-nav" onclick="_calPageYearStep(-1)">‹</button>
+      <span style="font-size:16px;font-weight:700;">${_mcal.y}년</span>
+      <button class="cal-nav" onclick="_calPageYearStep(1)">›</button>
+    </div>
+    ${_ymPickerHtml(_mcal.y,_mcal.m,'_calPageSetYM','_calPageYearStep')}
+    <div class="cal-actions"><button class="cal-cancel" onclick="document.getElementById('_calYmModal').remove()">취소</button></div>
+  </div>`;
+  document.body.appendChild(el);
+}
+
 let calRoom=0;
 
 function renderCalRoomSel(){
@@ -1603,7 +1627,8 @@ function _resConflicts(ci,co,roomIdx,excludeId){
 function renderCalPage(){
   const y=_mcal.y,m=_mcal.m;
   renderCalRoomSel();
-  document.getElementById('calMonthLabel').textContent=`${y}년 ${_MN[m]}`;
+  const lbl=document.getElementById('calMonthLabel');
+  if(lbl)lbl.textContent=`${y}년 ${_MN[m]}`;
   _renderMonthGrid(y,m);
   if(_selectedDay)_renderDayDetail(_selectedDay);
   else _renderResList();
@@ -1704,7 +1729,7 @@ function _schedItemHtml(r,isNow){
   if(r.childCnt>0)extras.push(`👶 아동 ${r.childCnt}명`);
   if(r.dogCnt>0)extras.push(`🐶 강아지 ${r.dogCnt}마리`);
   if(r.bbq)extras.push(`🔥 바베큐`);
-  return `<div class="sched-item" onclick="openResModal('${r.id}')">
+  return `<div class="sched-item" onclick="_schedItemClick('${r.id}','${r.ci||''}')">
     <div class="sched-line" style="background:${color};"></div>
     <div class="sched-body">
       <div class="sched-name">${isNow?'🏠 ':''}<span style="font-weight:700;">${r.name||'이름 없음'}</span>${r.guests?`<span class="sched-guests"> · ${r.guests}</span>`:''}</div>
@@ -1714,6 +1739,15 @@ function _schedItemHtml(r,isNow){
     </div>
     ${r.price?`<div class="sched-price">${parseNum(r.price).toLocaleString('ko-KR')}원</div>`:''}
   </div>`;
+}
+function _schedItemClick(id,ci){
+  if(ci){
+    _mcal.y=parseInt(ci.slice(0,4));
+    _mcal.m=parseInt(ci.slice(5,7))-1;
+    _selectedDay=ci;
+  }
+  renderCalPage();
+  openResModal(id);
 }
 
 function _renderResList(){
