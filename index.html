@@ -84,6 +84,7 @@ header p{font-size:10px;color:var(--ink-light);margin-top:2px;}
 .card-b.open{display:block;}
 .tpl-text{font-size:13px;line-height:1.9;background:var(--cream);border:none;border-radius:12px;padding:14px;white-space:pre-wrap;word-break:break-all;min-height:70px;margin-bottom:10px;}
 .tpl-edit{width:100%;font-size:13px;line-height:1.9;background:white;border:2px solid var(--accent);border-radius:12px;padding:13px;min-height:110px;margin-bottom:10px;font-family:'Noto Sans KR',sans-serif;resize:vertical;outline:none;}
+.tpl-title-edit{width:100%;padding:9px 12px;border:1.5px solid var(--accent);border-radius:10px;font-size:14px;font-weight:600;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;background:white;color:var(--ink);outline:none;}
 .card-actions{display:flex;gap:8px;flex-wrap:wrap;}
 
 /* BUTTONS */
@@ -152,6 +153,19 @@ header p{font-size:10px;color:var(--ink-light);margin-top:2px;}
 .cal-day.cal-co{border-radius:0 10px 10px 0;}
 .cal-day small{display:block;font-size:9px;margin-top:1px;font-weight:600;}
 .cal-day.cal-sel small{color:rgba(255,255,255,.85);}
+/* 연도·월 피커 */
+.cal-title-btn{background:none;border:none;font-size:16px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;color:var(--ink);padding:4px 8px;border-radius:8px;display:flex;align-items:center;gap:4px;}
+.cal-title-btn:active{background:var(--cream);}
+.cal-title-btn::after{content:'▾';font-size:11px;color:var(--ink-light);}
+.cal-title-btn.ym-open::after{content:'▴';}
+.cal-ym-wrap{padding:10px 0 4px;}
+.cal-ym-year{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px;}
+.cal-ym-year span{font-size:18px;font-weight:700;min-width:70px;text-align:center;}
+.cal-ym-ybtn{background:var(--cream);border:none;border-radius:8px;font-size:18px;width:36px;height:36px;cursor:pointer;color:var(--ink);}
+.cal-ym-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.cal-ym-mbtn{padding:10px 4px;border:1.5px solid var(--border);border-radius:10px;background:white;font-size:13px;font-weight:500;cursor:pointer;font-family:'Noto Sans KR',sans-serif;color:var(--ink);transition:all .15s;}
+.cal-ym-mbtn.cur{border-color:var(--accent);background:#FFF2EE;color:var(--accent);font-weight:700;}
+.cal-ym-mbtn:active{background:var(--cream);}
 .cal-today{outline:2px solid var(--accent);outline-offset:-2px;}
 .we-lbl{color:#C05A1F;font-weight:600;}
 .su-lbl{color:#EF4444;font-weight:600;}
@@ -746,6 +760,7 @@ function loadAll(){
     const tr=localStorage.getItem(SK_TPL);
     if(tr){const d=JSON.parse(tr);
       if(d.stageBodies) STAGES.forEach(s=>{const b=d.stageBodies[s.id];if(b)s.templates.forEach((t,i)=>{if(b[i]!==undefined)t.body=b[i];});});
+      if(d.stageTitles) STAGES.forEach(s=>{const tt=d.stageTitles[s.id];if(tt)s.templates.forEach((t,i)=>{if(tt[i]!==undefined)t.title=tt[i];});});
       if(d.customs) customs=d.customs;
     }
   }catch(e){}
@@ -780,8 +795,11 @@ function loadRooms(){
 }
 function saveRoomsStorage(){localStorage.setItem(SK_ROOMS,JSON.stringify(rooms));}
 function saveTplStorage(){
-  const d={stageBodies:{},customs};
-  STAGES.forEach(s=>{d.stageBodies[s.id]=s.templates.map(t=>t.body);});
+  const d={stageBodies:{},stageTitles:{},customs};
+  STAGES.forEach(s=>{
+    d.stageBodies[s.id]=s.templates.map(t=>t.body);
+    d.stageTitles[s.id]=s.templates.map(t=>t.title);
+  });
   localStorage.setItem(SK_TPL,JSON.stringify(d));
 }
 function saveSettingsStorage(){localStorage.setItem(SK_SET,JSON.stringify(settings));}
@@ -1160,14 +1178,17 @@ function renderStage(){
     const raw=isEd?editState[key]:t.body;const rend=applyVars(raw);const isC=i>=orig;
     html+=`<div class="card"><div class="card-h" onclick="togCard('${key}')"><span class="card-t">${esc(t.title)}</span><span class="card-tog" id="tog-${key}">▾</span></div>
     <div class="card-b" id="body-${key}">
-      ${isEd?`<textarea class="tpl-edit" id="edit-${key}">${esc(raw)}</textarea>${varChipsHtml('edit-'+key)}`:`<div class="tpl-text">${esc(rend)}</div>`}
+      ${isEd
+        ?`<input class="tpl-title-edit" id="etitle-${key}" value="${esc(t.title)}" placeholder="템플릿 제목">
+           <textarea class="tpl-edit" id="edit-${key}">${esc(raw)}</textarea>${varChipsHtml('edit-'+key)}`
+        :`<div class="tpl-text">${esc(rend)}</div>`}
       <div class="card-actions">
         <button class="btn btn-dark" id="cp-${key}" onclick="copyTpl('${key}',${i})">📋 복사</button>
         <button class="btn btn-green" onclick="openSms('${key}',${i})">📱 문자</button>
         ${isEd
           ?`<button class="btn btn-save2" onclick="saveEdit('${key}',${i})">저장</button><button class="btn btn-muted" onclick="cancelEdit('${key}')">취소</button>`
           :`<button class="btn btn-muted" onclick="startEdit('${key}',${i})">수정</button>`}
-        ${isC?`<button class="btn btn-del" onclick="delTpl(${i})">삭제</button>`:''}
+        <button class="btn btn-del" onclick="delTpl(${i})">삭제</button>
       </div>
     </div></div>`;
   });
@@ -1217,8 +1238,10 @@ function cancelEdit(key){delete editState[key];renderStage();}
 function saveEdit(key,idx){
   const ta=document.getElementById(`edit-${key}`);if(!ta)return;
   const s=STAGES[curStage];const orig=s.templates.length;const txt=ta.value;
-  if(idx<orig)s.templates[idx].body=txt;
-  else{const ci=idx-orig;(customs[s.id]=customs[s.id]||[])[ci].body=txt;}
+  const titleEl=document.getElementById(`etitle-${key}`);
+  const newTitle=titleEl&&titleEl.value.trim()?titleEl.value.trim():null;
+  if(idx<orig){s.templates[idx].body=txt;if(newTitle)s.templates[idx].title=newTitle;}
+  else{const ci=idx-orig;const c=(customs[s.id]=customs[s.id]||[])[ci];c.body=txt;if(newTitle)c.title=newTitle;}
   delete editState[key];saveTplStorage();renderStage();
   const b=document.getElementById(`body-${key}`);if(b)b.classList.add('open');
   const t=document.getElementById(`tog-${key}`);if(t)t.classList.add('open');
@@ -1226,9 +1249,11 @@ function saveEdit(key,idx){
 }
 function delTpl(idx){
   const s=STAGES[curStage];const orig=s.templates.length;
-  if(!confirm('이 템플릿을 삭제할까요?'))return;
-  (customs[s.id]=customs[s.id]||[]).splice(idx-orig,1);
-  saveTplStorage();renderStage();toast('삭제됐어요');
+  showConfirmModal('템플릿 삭제','이 템플릿을 삭제할까요?',()=>{
+    if(idx<orig)s.templates.splice(idx,1);
+    else(customs[s.id]=customs[s.id]||[]).splice(idx-orig,1);
+    saveTplStorage();renderStage();toast('삭제됐어요');
+  },null,'삭제','취소');
 }
 
 /* =============================================
@@ -1498,7 +1523,25 @@ function applySettingsToUI(){
   updateDoorHint();
 }
 /* ===== 달력 날짜 범위 선택 ===== */
-let _cal={ci:null,co:null,step:'ci',y:0,m:0};
+function _ymPickerHtml(y,m,setFn,stepFn){
+  const months=_MN.map((mn,i)=>
+    `<button class="cal-ym-mbtn${i===m?' cur':''}" onclick="${setFn}(${y},${i})">${mn}</button>`
+  ).join('');
+  return`<div class="cal-ym-wrap">
+    <div class="cal-ym-year">
+      <button class="cal-ym-ybtn" onclick="${stepFn}(-1)">‹</button>
+      <span>${y}년</span>
+      <button class="cal-ym-ybtn" onclick="${stepFn}(1)">›</button>
+    </div>
+    <div class="cal-ym-grid">${months}</div>
+  </div>`;
+}
+function _calSetYM(y,m){_cal.y=y;_cal.m=m;_cal.ym=false;_renderCal();}
+function _calYearStep(d){_cal.y+=d;_renderCal();}
+function _pfCalSetYM(y,m){_pfCal.y=y;_pfCal.m=m;_pfCal.ym=false;_pfRenderCal();}
+function _pfCalYearStep(d){_pfCal.y+=d;_pfRenderCal();}
+
+let _cal={ci:null,co:null,step:'ci',y:0,m:0,ym:false};
 const _MN=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
 
 function openDatePicker(){
@@ -1544,18 +1587,19 @@ function _renderCal(){
   }
   const hint=step==='ci'?'입실 날짜를 선택하세요':'퇴실 날짜를 선택하세요 (입실: '+ci+')';
   const confirmBtn=ci&&co?`<button class="cal-confirm" onclick="_calConfirm()">확인 (${ci} → ${co})</button>`:'';
+  const ymBody=_cal.ym?_ymPickerHtml(y,m,'_calSetYM','_calYearStep'):
+    `<div class="cal-hint">${hint}</div><div class="cal-grid">${cells}</div>`;
   const el=document.createElement('div');
   el.id='_calModal';el.className='cal-ov';
   el.onclick=e=>{if(e.target===el)el.remove();};
   el.innerHTML=`<div class="cal-box">
     <div class="cal-top">
-      <button class="cal-nav" onclick="_calNav(-1)">‹</button>
-      <span class="cal-title">${y}년 ${_MN[m]}</span>
-      <button class="cal-nav" onclick="_calNav(1)">›</button>
+      <button class="cal-nav" ${_cal.ym?'style="visibility:hidden"':''} onclick="_calNav(-1)">‹</button>
+      <button class="cal-title-btn ${_cal.ym?'ym-open':''}" onclick="_cal.ym=!_cal.ym;_renderCal()">${y}년 ${_MN[m]}</button>
+      <button class="cal-nav" ${_cal.ym?'style="visibility:hidden"':''} onclick="_calNav(1)">›</button>
     </div>
-    <div class="cal-hint">${hint}</div>
-    <div class="cal-grid">${cells}</div>
-    <div class="cal-actions">${confirmBtn}<button class="cal-cancel" onclick="document.getElementById('_calModal').remove()">취소</button></div>
+    ${ymBody}
+    <div class="cal-actions">${_cal.ym?'':confirmBtn}<button class="cal-cancel" onclick="document.getElementById('_calModal').remove()">취소</button></div>
   </div>`;
   document.body.appendChild(el);
 }
@@ -1866,7 +1910,7 @@ function openPeriodForm(){
 }
 function closePeriodForm(){document.getElementById('periodFormWrap').style.display='none';}
 
-let _pfCal={ci:null,co:null,step:'ci',y:0,m:0};
+let _pfCal={ci:null,co:null,step:'ci',y:0,m:0,ym:false};
 function openPeriodDatePicker(){
   const today=new Date();
   _pfCal.y=today.getFullYear();_pfCal.m=today.getMonth();
@@ -1907,18 +1951,19 @@ function _pfRenderCal(){
   }
   const hint=step==='ci'?'시작일을 선택하세요':'종료일을 선택하세요 (시작: '+ci+')';
   const confirmBtn=ci&&co?`<button class="cal-confirm" onclick="_pfConfirm()">확인 (${ci} → ${co})</button>`:'';
+  const ymBody=_pfCal.ym?_ymPickerHtml(y,m,'_pfCalSetYM','_pfCalYearStep'):
+    `<div class="cal-hint">${hint}</div><div class="cal-grid">${cells}</div>`;
   const el=document.createElement('div');
   el.id='_pfCalModal';el.className='cal-ov';
   el.onclick=e=>{if(e.target===el)el.remove();};
   el.innerHTML=`<div class="cal-box">
     <div class="cal-top">
-      <button class="cal-nav" onclick="_pfCalNav(-1)">‹</button>
-      <span class="cal-title">${y}년 ${_MN[m]}</span>
-      <button class="cal-nav" onclick="_pfCalNav(1)">›</button>
+      <button class="cal-nav" ${_pfCal.ym?'style="visibility:hidden"':''} onclick="_pfCalNav(-1)">‹</button>
+      <button class="cal-title-btn ${_pfCal.ym?'ym-open':''}" onclick="_pfCal.ym=!_pfCal.ym;_pfRenderCal()">${y}년 ${_MN[m]}</button>
+      <button class="cal-nav" ${_pfCal.ym?'style="visibility:hidden"':''} onclick="_pfCalNav(1)">›</button>
     </div>
-    <div class="cal-hint">${hint}</div>
-    <div class="cal-grid">${cells}</div>
-    <div class="cal-actions">${confirmBtn}<button class="cal-cancel" onclick="document.getElementById('_pfCalModal').remove()">취소</button></div>
+    ${ymBody}
+    <div class="cal-actions">${_pfCal.ym?'':confirmBtn}<button class="cal-cancel" onclick="document.getElementById('_pfCalModal').remove()">취소</button></div>
   </div>`;
   document.body.appendChild(el);
 }
