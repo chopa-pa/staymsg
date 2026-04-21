@@ -371,7 +371,7 @@ input{text-overflow:ellipsis;}
     </div>
     <div style="display:flex;align-items:center;gap:4px;">
       <button class="btn-cfg" onclick="forceUpdate()" title="최신버전으로 업데이트">🔄</button>
-      <button class="btn-cfg" onclick="openSettings()">⚙️</button>
+      <button class="btn-cfg" id="hdrSaveBtn" onclick="saveFormState()" title="현재 손님 정보 저장">💾</button>
     </div>
   </div>
 </header>
@@ -453,35 +453,55 @@ input{text-overflow:ellipsis;}
 
 <!-- ===== PAGE: 요금계산기 ===== -->
 <div class="page" id="page-price">
-  <div class="price-page-panel">
-    <h3>🧮 요금 계산기</h3>
-    <div id="priceRoomSel" class="room-sel" style="margin-bottom:12px;"></div>
-    <div class="vi" style="margin-bottom:12px;">
-      <label>입실 · 퇴실 날짜</label>
-      <div class="date-range-btn" id="priceDateBtn" onclick="openPriceDatePicker()">
-        <div class="drb-placeholder">📅 날짜를 선택하세요</div>
+  <div id="priceRoomSel" class="room-sel" style="padding:4px 0 2px;"></div>
+  <div class="var-panel">
+    <h3>🧮 요금 조회</h3>
+    <div class="var-grid">
+      <div class="vi" style="grid-column:1/-1;">
+        <label>입실 · 퇴실 날짜</label>
+        <div class="date-range-btn" id="priceDateBtn" onclick="openPriceDatePicker()">
+          <div class="drb-placeholder">📅 날짜를 선택하세요</div>
+        </div>
+        <input type="hidden" id="c_checkin">
+        <input type="hidden" id="c_checkout">
       </div>
-      <input type="hidden" id="c_checkin">
-      <input type="hidden" id="c_checkout">
-    </div>
-    <div class="vi-row2" style="margin-bottom:12px;">
-      <div class="vi">
-        <label>인원</label>
-        <select id="c_guests" onchange="calcPricePage()">
-          <option value="">선택 안함</option>
-          <option>1명</option><option>2명</option><option>3명</option><option>4명</option>
-          <option>5명</option><option>6명</option><option>7명</option><option>8명</option>
-          <option>9명</option><option>10명</option>
-        </select>
-      </div>
-      <div class="vi">
-        <label>강아지</label>
-        <select id="c_dogs" onchange="calcPricePage()">
-          <option value="0">없음</option><option value="1">1마리</option><option value="2">2마리</option>
-        </select>
+      <div class="vi-row2">
+        <div class="vi">
+          <label>총인원</label>
+          <select id="c_guests" onchange="calcPricePage()">
+            <option value="">선택</option>
+            <option>1명</option><option>2명</option><option>3명</option><option>4명</option>
+            <option>5명</option><option>6명</option><option>7명</option><option>8명</option>
+            <option>9명</option><option>10명</option>
+          </select>
+        </div>
+        <div class="vi"><label>예상 금액</label><div id="p_priceQuick" style="padding:9px 12px;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-weight:700;color:var(--accent);min-height:38px;">—</div></div>
       </div>
     </div>
-    <div id="calcResult"><p style="font-size:12px;color:var(--ink-light);text-align:center;padding:20px 0;">날짜를 선택하면 요금이 자동 계산돼요 🌿</p></div>
+    <!-- 체크박스 -->
+    <div class="check-row">
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;width:100%;">
+        <span class="chk-label">👶 미취학아동<small>만 7세 미만</small></span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="p_changeChild(-1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:50%;background:white;font-size:15px;cursor:pointer;color:var(--ink);line-height:1;">-</button>
+          <span id="p_child_display" style="font-size:14px;font-weight:600;min-width:18px;text-align:center;">0</span>
+          <button onclick="p_changeChild(1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:50%;background:white;font-size:15px;cursor:pointer;color:var(--ink);line-height:1;">+</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;width:100%;" id="p_dog_row">
+        <span class="chk-label">🐶 강아지 동반<small id="p_dog_sub">소형견 가능</small></span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="p_changeDog(-1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:50%;background:white;font-size:15px;cursor:pointer;color:var(--ink);line-height:1;">-</button>
+          <span id="p_dog_display" style="font-size:14px;font-weight:600;min-width:18px;text-align:center;">0</span>
+          <button onclick="p_changeDog(1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:50%;background:white;font-size:15px;cursor:pointer;color:var(--ink);line-height:1;">+</button>
+        </div>
+      </div>
+      <div class="chk-item" id="p_chk_bbq" onclick="p_toggleBbq()" style="display:none;">
+        <div class="chk-box" id="p_bbq_box"></div>
+        <span class="chk-label">🔥 바베큐<small id="p_bbq_sub"></small></span>
+      </div>
+    </div>
+    <div class="price-result" id="calcResult" style="display:none;"></div>
   </div>
 </div>
 
@@ -870,6 +890,7 @@ const SK_SET = 'staymsg_set_v2';
 const SK_PER = 'staymsg_periods_v1';
 const SK_ROOMS = 'staymsg_rooms_v1';
 const SK_GUESTS = 'staymsg_guests_v1';
+const SK_FORM  = 'staymsg_form_v1';
 
 /* =============================================
    STATE
@@ -964,7 +985,7 @@ function goPage(p){
   const tabs=document.getElementById('stageTabs');
   tabs.style.display=(p==='msg')?'flex':'none';
   if(p==='msg') renderStage();
-  if(p==='price'){renderPriceRoomSel();calcPricePage();}
+  if(p==='price'){renderPriceRoomSel();p_updateDogRow();p_updateBbqRow();calcPricePage();}
   if(p==='cal'){renderCalPage();}
 }
 
@@ -1262,16 +1283,55 @@ function buildBreakdownHtml(res,compact){
 }
 
 /* =============================================
-   요금 계산기 페이지
+   요금 조회 탭
 ============================================= */
 let _pcal={ci:null,co:null,step:'ci',y:0,m:0,ym:false};
+let p_childCount=0, p_dogCount=0, p_bbq=false;
 
 function renderPriceRoomSel(){
   const el=document.getElementById('priceRoomSel');
-  if(!el||rooms.length<=1)return;
+  if(!el)return;
+  if(rooms.length<=1){el.style.display='none';return;}
+  el.style.display='flex';
   el.innerHTML=rooms.map((r,i)=>
-    `<button class="room-btn${i===curRoom?' active':''}" onclick="curRoom=${i};renderPriceRoomSel();calcPricePage();">${r.name||'객실'}</button>`
+    `<button class="room-btn${i===curRoom?' active':''}" onclick="curRoom=${i};renderPriceRoomSel();p_updateDogRow();p_updateBbqRow();calcPricePage();">${r.name||'객실'}</button>`
   ).join('');
+}
+
+function p_updateDogRow(){
+  const r=getRoom();
+  const allowed=r.dog_allow!==false&&(r.dog_allow||settings.dog_allow);
+  const row=document.getElementById('p_dog_row');
+  if(row)row.style.display=allowed?'flex':'none';
+  const sub=document.getElementById('p_dog_sub');
+  if(sub)sub.textContent=r.dog_note||settings.dog_note||'소형견 가능';
+  if(!allowed){p_dogCount=0;const el=document.getElementById('p_dog_display');if(el)el.textContent=0;}
+}
+function p_updateBbqRow(){
+  const r=getRoom();
+  const show=settings.bbq_allow&&(parseNum(settings.bbq_price)>0);
+  const row=document.getElementById('p_chk_bbq');
+  if(!row)return;
+  row.style.display=show?'flex':'none';
+  const sub=document.getElementById('p_bbq_sub');
+  if(sub)sub.textContent=settings.bbq_price?` · ${parseNum(settings.bbq_price).toLocaleString('ko-KR')}원`:'';
+}
+function p_changeChild(d){
+  p_childCount=Math.max(0,p_childCount+d);
+  const el=document.getElementById('p_child_display');if(el)el.textContent=p_childCount;
+  calcPricePage();
+}
+function p_changeDog(d){
+  const max=parseInt(getRoom().max_guests)||10;
+  p_dogCount=Math.max(0,Math.min(max,p_dogCount+d));
+  const el=document.getElementById('p_dog_display');if(el)el.textContent=p_dogCount;
+  calcPricePage();
+}
+function p_toggleBbq(){
+  p_bbq=!p_bbq;
+  const box=document.getElementById('p_bbq_box');
+  if(box)box.classList.toggle('on',p_bbq);
+  calcPricePage();
 }
 
 function openPriceDatePicker(){
@@ -1284,7 +1344,6 @@ function openPriceDatePicker(){
 }
 function _pcalSetYM(y,m){_pcal.y=y;_pcal.m=m;_pcal.ym=false;_renderPCal();}
 function _pcalYearStep(d){_pcal.y+=d;_renderPCal();}
-
 function _renderPCal(){
   const existing=document.getElementById('_pcalModal');if(existing)existing.remove();
   const el=document.createElement('div');
@@ -1293,7 +1352,7 @@ function _renderPCal(){
   const hint=_pcal.step==='ci'?'입실 날짜를 선택하세요':'퇴실 날짜를 선택하세요';
   el.innerHTML=`<div style="background:white;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:18px 14px 28px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <button style="background:none;border:none;font-size:22px;color:var(--ink-light);cursor:pointer;padding:4px 10px;" onclick="(function(){const m=document.getElementById('_pcalModal');if(m)m.remove();})()">✕</button>
+      <button style="background:none;border:none;font-size:22px;color:var(--ink-light);cursor:pointer;padding:4px 10px;" onclick="document.getElementById('_pcalModal').remove()">✕</button>
       <span style="font-size:13px;font-weight:600;color:var(--accent);">${hint}</span>
       <div style="width:46px;"></div>
     </div>
@@ -1371,13 +1430,23 @@ function _updatePriceDateBtn(){
 function calcPricePage(){
   const ci=document.getElementById('c_checkin').value;
   const co=document.getElementById('c_checkout').value;
-  const el=document.getElementById('calcResult');
-  if(!ci||!co){el.innerHTML='<p style="font-size:12px;color:var(--ink-light);text-align:center;padding:20px 0;">날짜를 선택하면 요금이 자동 계산돼요 🌿</p>';return;}
+  const resEl=document.getElementById('calcResult');
+  const quick=document.getElementById('p_priceQuick');
+  if(!ci||!co){
+    resEl.style.display='none';
+    if(quick)quick.textContent='—';
+    return;
+  }
   const guestsSel=document.getElementById('c_guests').value;
-  const dogs=parseInt(document.getElementById('c_dogs').value)||0;
-  const res=calcNights(ci,co,guestsSel||'',0,dogs,false);
-  if(!res||!res.nights){el.innerHTML='<p style="font-size:12px;color:#C04040;text-align:center;padding:12px;">퇴실일이 입실일보다 빠릅니다</p>';return;}
-  el.innerHTML=buildBreakdownHtml(res,false);
+  const res=calcNights(ci,co,guestsSel||'',p_childCount,p_dogCount,p_bbq);
+  if(!res||!res.nights){
+    resEl.style.display='none';
+    if(quick)quick.textContent='오류';
+    return;
+  }
+  resEl.style.display='block';
+  resEl.innerHTML=buildBreakdownHtml(res,false);
+  if(quick)quick.textContent=res.finalTotal?res.finalTotal.toLocaleString('ko-KR')+'원':'—';
 }
 
 /* =============================================
@@ -2579,6 +2648,46 @@ function deletePeriod(id){
 /* =============================================
    TOAST
 ============================================= */
+/* =============================================
+   FORM STATE SAVE / LOAD
+============================================= */
+function saveFormState(){
+  const state={
+    name:document.getElementById('v_name')?.value||'',
+    phone:document.getElementById('v_phone')?.value||'',
+    checkin:document.getElementById('v_checkin')?.value||'',
+    checkout:document.getElementById('v_checkout')?.value||'',
+    guests:document.getElementById('v_guests')?.value||'',
+    price:document.getElementById('v_price')?.value||'',
+    child:document.getElementById('child_count_display')?.textContent||'0',
+    dog:document.getElementById('dog_count_display')?.textContent||'0',
+  };
+  localStorage.setItem(SK_FORM,JSON.stringify(state));
+  const btn=document.getElementById('hdrSaveBtn');
+  if(btn){btn.textContent='✅';setTimeout(()=>btn.textContent='💾',1200);}
+  toast('손님 정보가 저장됐어요 ✓');
+}
+function loadFormState(){
+  try{
+    const state=JSON.parse(localStorage.getItem(SK_FORM)||'null');
+    if(!state)return;
+    if(state.name)document.getElementById('v_name').value=state.name;
+    if(state.phone)document.getElementById('v_phone').value=state.phone;
+    if(state.checkin){document.getElementById('v_checkin').value=state.checkin;}
+    if(state.checkout){document.getElementById('v_checkout').value=state.checkout;}
+    if(state.guests)document.getElementById('v_guests').value=state.guests;
+    if(state.price)document.getElementById('v_price').value=state.price;
+    const child=parseInt(state.child)||0;
+    childCount=child;
+    const dog=parseInt(state.dog)||0;
+    dogCount=dog;
+    document.getElementById('child_count_display').textContent=child;
+    document.getElementById('dog_count_display').textContent=dog;
+    if(state.checkin&&state.checkout){_cal.ci=state.checkin;_cal.co=state.checkout;_updateDateDisplay();}
+    else if(state.checkin){_cal.ci=state.checkin;_updateDateDisplay();}
+  }catch(e){}
+}
+
 let toastT=null;
 function toast(msg){
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
@@ -2596,6 +2705,8 @@ updateGuestSelect();
 updateDogRow();updateBbqRow();
 renderRoomSelector();
 if(settings.name)document.getElementById('hdrTitle').textContent=`📱 StayMsg (${settings.name})`;
+loadFormState();
+renderAll();
 // 입실 최소날짜 = 오늘, 초기 퇴실 min 설정
 (()=>{const today=new Date().toISOString().slice(0,10);const ci=document.getElementById('v_checkin');const co=document.getElementById('v_checkout');ci.min=today;const ciVal=ci.value;if(ciVal){const next=new Date(ciVal+'T00:00:00');next.setDate(next.getDate()+1);co.min=next.toISOString().slice(0,10);}else{co.min=today;}})();
 
