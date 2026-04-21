@@ -170,6 +170,10 @@ header p{font-size:10px;color:var(--ink-light);margin-top:2px;}
 .we-lbl{color:#C05A1F;font-weight:600;}
 .su-lbl{color:#EF4444;font-weight:600;}
 .wd-lbl{color:#8E8E93;}
+.pk-lbl{color:#C03030;font-weight:700;}
+.sm-lbl{color:#B06020;font-weight:700;}
+.sp-lbl{color:#6040B0;font-weight:700;}
+.dc-lbl{color:#2E7D50;font-weight:700;}
 .is-desktop .date-ico{display:none;}
 .is-mobile .var-grid{grid-template-columns:1fr;}
 .vi-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;grid-column:1/-1;}
@@ -1309,13 +1313,20 @@ function p_updateDogRow(){
   if(!allowed){p_dogCount=0;const el=document.getElementById('p_dog_display');if(el)el.textContent=0;}
 }
 function p_updateBbqRow(){
-  const r=getRoom();
-  const show=settings.bbq_allow&&(parseNum(settings.bbq_price)>0);
   const row=document.getElementById('p_chk_bbq');
   if(!row)return;
-  row.style.display=show?'flex':'none';
-  const sub=document.getElementById('p_bbq_sub');
-  if(sub)sub.textContent=settings.bbq_price?` · ${parseNum(settings.bbq_price).toLocaleString('ko-KR')}원`:'';
+  if(settings.bbq_allow){
+    row.style.display='flex';
+    const sub=document.getElementById('p_bbq_sub');
+    if(sub){
+      const p=parseNum(settings.bbq_price);
+      const bill=settings.bbq_billing==='separate'?'따로 결제':'총요금 포함';
+      sub.textContent=p?`${p.toLocaleString('ko-KR')}원 · ${bill}`:'';
+    }
+  }else{
+    row.style.display='none';
+    if(p_bbq){p_bbq=false;const box=document.getElementById('p_bbq_box');if(box)box.classList.remove('on');}
+  }
 }
 function p_changeChild(d){
   p_childCount=Math.max(0,p_childCount+d);
@@ -1365,30 +1376,43 @@ function _renderPCal(){
 function _pcalGridHtml(){
   const y=_pcal.y,m=_pcal.m;
   const today=new Date().toISOString().slice(0,10);
-  const first=new Date(y,m,1).getDay();
-  const days=new Date(y,m+1,0).getDate();
-  const DOW=['일','월','화','수','목','금','토'];
-  let cells=DOW.map(d=>`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--ink-light);padding:6px 0;">${d}</div>`).join('');
-  for(let i=0;i<first;i++)cells+=`<div></div>`;
-  for(let d=1;d<=days;d++){
+  const firstDow=new Date(y,m,1).getDay();
+  const daysInM=new Date(y,m+1,0).getDate();
+  const PT_CLS={peak:'pk-lbl',semi:'sm-lbl',special:'sp-lbl',discount:'dc-lbl'};
+  const PT_LBL={peak:'성수기',semi:'준성수기',special:'특별',discount:'할인'};
+  let cells='';
+  ['일','월','화','수','목','금','토'].forEach((d,i)=>{
+    cells+=`<div class="cal-dow" style="${i===0?'color:#EF4444':i===6?'color:#3B82F6':''}">${d}</div>`;
+  });
+  for(let i=0;i<firstDow;i++)cells+=`<div></div>`;
+  for(let d=1;d<=daysInM;d++){
     const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dow=(first+d-1)%7;
-    const isCi=_pcal.ci===ds,isCo=_pcal.co===ds;
-    const inRange=_pcal.ci&&_pcal.co&&ds>_pcal.ci&&ds<_pcal.co;
+    const dow=new Date(ds+'T00:00:00').getDay();
+    const isWe=dow===5||dow===6;const isSun=dow===0;
     const isToday=ds===today;
-    let bg='',color='',fw='',br='',outline='';
-    if(isCi||isCo){bg=isCi?'var(--accent)':'#3B82F6';color='white';fw='700';br='50%';}
-    else if(inRange){bg='#FFF0EB';color='var(--ink)';}
-    else if(isToday){outline='2px solid var(--accent)';}
-    if(!isCi&&!isCo){if(dow===0)color=color||'#EF4444';if(dow===6)color=color||'#3B82F6';}
-    cells+=`<div onclick="_pcalPickDate('${ds}')" style="text-align:center;padding:8px 2px;cursor:pointer;border-radius:${br||'8px'};background:${bg};color:${color||'var(--ink)'};font-weight:${fw||'500'};font-size:13px;${outline?'outline:'+outline+';':''}">${d}</div>`;
+    const isCi=ds===_pcal.ci;const isCo=ds===_pcal.co;
+    const inR=_pcal.ci&&_pcal.co&&ds>_pcal.ci&&ds<_pcal.co;
+    // 특별기간 확인
+    const period=periods.find(p=>ds>=p.start&&ds<=p.end);
+    let cls='cal-day';
+    if(isCi)cls+=' cal-sel cal-ci';
+    else if(isCo)cls+=' cal-sel cal-co';
+    else if(inR)cls+=' cal-range';
+    if(isToday&&!isCi&&!isCo)cls+=' cal-today';
+    const lbl=isCi?'<small>입실</small>':isCo?'<small>퇴실</small>'
+      :isToday?'<small style="color:var(--accent)">오늘</small>'
+      :period?`<small class="${PT_CLS[period.type]||'pk-lbl'}">${period.label||PT_LBL[period.type]||'특별'}</small>`
+      :isWe?'<small class="we-lbl">주말</small>'
+      :isSun?'<small class="su-lbl">일</small>'
+      :'<small class="wd-lbl">주중</small>';
+    cells+=`<div class="${cls}" onclick="_pcalPickDate('${ds}')"><span>${d}</span>${lbl}</div>`;
   }
   return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
     <button class="cal-nav" onclick="_pcalNav(-1)">‹</button>
-    <span style="font-size:15px;font-weight:700;cursor:pointer;" onclick="_pcal.ym=true;_renderPCal();">${y}년 ${_MN[m]}</span>
+    <button class="cal-title-btn ${_pcal.ym?'ym-open':''}" onclick="_pcal.ym=!_pcal.ym;_renderPCal();">${y}년 ${_MN[m]}</button>
     <button class="cal-nav" onclick="_pcalNav(1)">›</button>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">${cells}</div>`;
+  <div class="cal-grid">${cells}</div>`;
 }
 function _pcalNav(d){_pcal.m+=d;if(_pcal.m<0){_pcal.m=11;_pcal.y--;}if(_pcal.m>11){_pcal.m=0;_pcal.y++;}_renderPCal();}
 function _pcalPickDate(ds){
