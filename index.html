@@ -362,7 +362,7 @@ input{text-overflow:ellipsis;}
 .month-day.sun .md-num{color:#EF4444;}
 .month-day.sat .md-num{color:#3B82F6;}
 .month-day.today.sun .md-num-inner,.month-day.today.sat .md-num-inner{color:white;}
-.res-chip{font-size:9px;font-weight:700;padding:1px 3px;border-radius:3px;color:white;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:14px;}
+.res-chip{display:block;width:100%;box-sizing:border-box;font-size:9px;font-weight:700;padding:2px 3px;border-radius:3px;color:white;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:13px;}
 .res-chip.ci-day{border-radius:6px 2px 2px 6px;}
 .res-chip.mid-day{border-radius:0;opacity:.85;}
 .res-chip.co-day{border-radius:2px 6px 6px 2px;opacity:.55;font-size:8px;}
@@ -588,29 +588,55 @@ input{text-overflow:ellipsis;}
   </div>
   <div style="padding:14px;">
     <div class="var-panel" style="margin-bottom:12px;">
+      <h3>✏️ 예약 정보 입력</h3>
       <div class="var-grid">
         <div class="vi"><label>손님 이름</label><input type="text" id="res_name" placeholder="예: 홍길동" autocomplete="off"></div>
-        <div class="vi"><label>연락처</label><input type="tel" id="res_phone" placeholder="예: 010-1234-5678" oninput="fmtPhone(this)" maxlength="13"></div>
+        <div class="vi"><label>연락처</label><div style="display:flex;gap:5px;"><input type="tel" id="res_phone" placeholder="예: 010-1234-5678" oninput="fmtPhone(this)" maxlength="13" style="flex:1;"></div></div>
         <div class="vi" style="grid-column:1/-1;">
           <label>입실 · 퇴실 날짜</label>
           <div class="date-range-btn" id="resDateBtn" onclick="openResDatePicker()">
             <div class="drb-placeholder">📅 날짜를 선택하세요</div>
           </div>
+          <div id="resDateDays" class="date-range-days"></div>
           <input type="hidden" id="res_checkin">
           <input type="hidden" id="res_checkout">
         </div>
         <div class="vi-row2">
           <div class="vi">
             <label>총인원</label>
-            <select id="res_guests">
+            <select id="res_guests" onchange="res_calcPrice()">
               <option value="">선택</option>
               <option>1명</option><option>2명</option><option>3명</option><option>4명</option>
               <option>5명</option><option>6명</option><option>7명</option><option>8명</option>
+              <option>9명</option><option>10명</option>
             </select>
           </div>
-          <div class="vi"><label>숙박금액</label><input type="tel" id="res_price" placeholder="직접 입력" oninput="fmtPrice(this)"></div>
+          <div class="vi"><label>숙박 금액</label><input type="tel" id="res_price" placeholder="자동계산 또는 직접 입력" oninput="this._manual=true;fmtPrice(this)"></div>
         </div>
       </div>
+      <div class="check-row">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;width:100%;">
+          <span class="chk-label">👶 미취학아동<small>만 7세 미만</small></span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button onclick="res_changeChild(-1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:50%;background:white;font-size:15px;cursor:pointer;color:var(--ink);line-height:1;">-</button>
+            <span id="res_child_display" style="font-size:14px;font-weight:600;min-width:18px;text-align:center;">0</span>
+            <button onclick="res_changeChild(1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:50%;background:white;font-size:15px;cursor:pointer;color:var(--ink);line-height:1;">+</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;width:100%;" id="res_dog_row">
+          <span class="chk-label">🐶 강아지 동반<small id="res_dog_sub">소형견 가능</small></span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button onclick="res_changeDog(-1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:50%;background:white;font-size:15px;cursor:pointer;color:var(--ink);line-height:1;">-</button>
+            <span id="res_dog_display" style="font-size:14px;font-weight:600;min-width:18px;text-align:center;">0</span>
+            <button onclick="res_changeDog(1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:50%;background:white;font-size:15px;cursor:pointer;color:var(--ink);line-height:1;">+</button>
+          </div>
+        </div>
+        <div class="chk-item" id="res_chk_bbq" onclick="res_toggleBbq()" style="display:none;">
+          <div class="chk-box" id="res_bbq_box"></div>
+          <span class="chk-label">🔥 바베큐<small id="res_bbq_sub"></small></span>
+        </div>
+      </div>
+      <div class="price-result" id="resCalcResult" style="display:none;"></div>
       <div class="vi" style="margin-top:10px;"><label>메모</label><input type="text" id="res_note" placeholder="특이사항, 요청사항 등"></div>
     </div>
     <input type="hidden" id="res_id">
@@ -1720,8 +1746,12 @@ function openResModal(id,prefillDate){
   const isNew=!id;
   document.getElementById('resModalTitle').textContent=isNew?'새 예약':'예약 수정';
   document.getElementById('resDelBtn').style.display=isNew?'none':'';
-  document.getElementById('res_id').value=id||'';
+  document.getElementById('resConflictBox').style.display='none';
+  document.getElementById('resCalcResult').style.display='none';
+  const pi=document.getElementById('res_price');if(pi)pi._manual=false;
+  res_updateDogRow();res_updateBbqRow();
   if(isNew){
+    document.getElementById('res_id').value='';
     document.getElementById('res_name').value='';
     document.getElementById('res_phone').value='';
     document.getElementById('res_guests').value='';
@@ -1730,8 +1760,13 @@ function openResModal(id,prefillDate){
     document.getElementById('res_checkin').value=prefillDate||'';
     document.getElementById('res_checkout').value='';
     _resCalState.ci=prefillDate||null;_resCalState.co=null;
+    res_childCnt=0;res_dogCnt=0;res_isBbq=false;
+    const cd=document.getElementById('res_child_display');if(cd)cd.textContent=0;
+    const dd=document.getElementById('res_dog_display');if(dd)dd.textContent=0;
+    const bb=document.getElementById('res_bbq_box');if(bb)bb.classList.remove('on');
   } else {
     const r=reservations.find(x=>x.id===id);if(!r)return;
+    document.getElementById('res_id').value=id;
     document.getElementById('res_name').value=r.name||'';
     document.getElementById('res_phone').value=r.phone||'';
     document.getElementById('res_guests').value=r.guests||'';
@@ -1740,8 +1775,13 @@ function openResModal(id,prefillDate){
     document.getElementById('res_checkin').value=r.ci||'';
     document.getElementById('res_checkout').value=r.co||'';
     _resCalState.ci=r.ci||null;_resCalState.co=r.co||null;
+    res_childCnt=r.childCnt||0;res_dogCnt=r.dogCnt||0;res_isBbq=!!r.bbq;
+    const cd=document.getElementById('res_child_display');if(cd)cd.textContent=res_childCnt;
+    const dd=document.getElementById('res_dog_display');if(dd)dd.textContent=res_dogCnt;
+    const bb=document.getElementById('res_bbq_box');if(bb)bb.classList.toggle('on',res_isBbq);
   }
   _resUpdateDateBtn();
+  if(document.getElementById('res_checkin').value&&document.getElementById('res_checkout').value)res_calcPrice();
   document.getElementById('resOverlay').classList.add('open');
   document.getElementById('resPanel').classList.add('open');
 }
@@ -1846,23 +1886,76 @@ function _resCalPickDate(ds){
 function _resCalConfirm(){
   document.getElementById('res_checkin').value=_resCalState.ci||'';
   document.getElementById('res_checkout').value=_resCalState.co||'';
+  const pi=document.getElementById('res_price');if(pi)pi._manual=false;
   _resUpdateDateBtn();
+  res_calcPrice();
   const m=document.getElementById('_resCalModal');if(m)m.remove();
 }
 function _resUpdateDateBtn(){
   const ci=document.getElementById('res_checkin').value;
   const co=document.getElementById('res_checkout').value;
   const btn=document.getElementById('resDateBtn');if(!btn)return;
+  const daysEl=document.getElementById('resDateDays');
   if(ci&&co){
     const n=Math.round((new Date(co)-new Date(ci))/86400000);
     const cp=_dateParts(ci);const cop=_dateParts(co);
     btn.innerHTML=`<div class="drb-side ci"><span class="drb-label">📅 입실</span><span class="drb-date">${cp.date}</span><span class="drb-sub">${cp.dow}요일 · <span style="color:${cp.color};font-weight:600">${cp.tag}</span></span></div><div class="drb-mid"><span class="drb-arrow">→</span><span class="drb-nights">${n}박</span></div><div class="drb-side"><span class="drb-label">🚪 퇴실</span><span class="drb-date">${cop.date}</span><span class="drb-sub">${cop.dow}요일 · <span style="color:${cop.color};font-weight:600">${cop.tag}</span></span></div>`;
+    if(daysEl)daysEl.textContent=`${n}박 ${n+1}일`;
   } else if(ci){
     const cp=_dateParts(ci);
     btn.innerHTML=`<div class="drb-side ci"><span class="drb-label">📅 입실</span><span class="drb-date">${cp.date}</span><span class="drb-sub">${cp.dow}요일</span></div><div class="drb-mid"><span class="drb-arrow">→</span></div><div class="drb-side"><span class="drb-label" style="color:#C7C7CC;">🚪 퇴실</span><span class="drb-date" style="color:#C7C7CC;">미선택</span></div>`;
+    if(daysEl)daysEl.textContent='';
   } else {
     btn.innerHTML=`<div class="drb-placeholder">📅 날짜를 선택하세요</div>`;
+    if(daysEl)daysEl.textContent='';
   }
+}
+
+let res_childCnt=0,res_dogCnt=0,res_isBbq=false;
+function res_updateDogRow(){
+  const row=document.getElementById('res_dog_row');if(!row)return;
+  const sub=document.getElementById('res_dog_sub');
+  const allowed=settings.dog_allow&&parseInt(settings.dog_max)>0;
+  if(!allowed){row.style.display='none';res_dogCnt=0;const el=document.getElementById('res_dog_display');if(el)el.textContent=0;}
+  else{row.style.display='flex';if(sub)sub.textContent=settings.dog_pp?`마리당 ${parseNum(settings.dog_pp).toLocaleString('ko-KR')}원`:'소형견 가능';}
+}
+function res_updateBbqRow(){
+  const row=document.getElementById('res_chk_bbq');if(!row)return;
+  if(settings.bbq_allow){
+    row.style.display='flex';
+    const sub=document.getElementById('res_bbq_sub');
+    if(sub){const p=parseNum(settings.bbq_price);const bill=settings.bbq_billing==='separate'?'따로 결제':'총요금 포함';sub.textContent=p?`${p.toLocaleString('ko-KR')}원 · ${bill}`:''}
+  }else{row.style.display='none';if(res_isBbq){res_isBbq=false;const b=document.getElementById('res_bbq_box');if(b)b.classList.remove('on');}}
+}
+function res_changeChild(d){
+  res_childCnt=Math.max(0,res_childCnt+d);
+  const el=document.getElementById('res_child_display');if(el)el.textContent=res_childCnt;
+  res_calcPrice();
+}
+function res_changeDog(d){
+  const max=parseInt(settings.dog_max)||1;
+  res_dogCnt=Math.max(0,Math.min(max,res_dogCnt+d));
+  const el=document.getElementById('res_dog_display');if(el)el.textContent=res_dogCnt;
+  res_calcPrice();
+}
+function res_toggleBbq(){
+  res_isBbq=!res_isBbq;
+  const box=document.getElementById('res_bbq_box');if(box)box.classList.toggle('on',res_isBbq);
+  res_calcPrice();
+}
+function res_calcPrice(){
+  const ci=document.getElementById('res_checkin').value;
+  const co=document.getElementById('res_checkout').value;
+  const resultEl=document.getElementById('resCalcResult');
+  const priceInput=document.getElementById('res_price');
+  if(!ci||!co){if(resultEl)resultEl.style.display='none';return;}
+  const guests=document.getElementById('res_guests').value;
+  const savedRoom=currentRoomIdx;currentRoomIdx=calRoom;
+  const res=calcNights(ci,co,guests||'',res_childCnt,res_dogCnt,res_isBbq);
+  currentRoomIdx=savedRoom;
+  if(!res||!res.nights){if(resultEl)resultEl.style.display='none';return;}
+  if(resultEl){resultEl.style.display='block';resultEl.innerHTML=buildBreakdownHtml(res,false);}
+  if(priceInput&&!priceInput._manual)priceInput.value=res.finalTotal?res.finalTotal.toLocaleString('ko-KR')+'원':'';
 }
 
 let _pendingSaveData=null;
@@ -1888,11 +1981,12 @@ function saveRes(forceConflict){
   const guests=document.getElementById('res_guests').value;
   const price=document.getElementById('res_price').value.replace(/[^0-9]/g,'');
   const note=document.getElementById('res_note').value.trim();
+  const childCnt=res_childCnt,dogCnt=res_dogCnt,bbq=res_isBbq;
   if(id){
     const idx=reservations.findIndex(r=>r.id===id);
-    if(idx>=0)reservations[idx]={id,name,phone,guests,price,note,ci,co,roomIdx};
+    if(idx>=0)reservations[idx]={id,name,phone,guests,price,note,ci,co,roomIdx,childCnt,dogCnt,bbq};
   } else {
-    reservations.push({id:Date.now().toString(36),name,phone,guests,price,note,ci,co,roomIdx});
+    reservations.push({id:Date.now().toString(36),name,phone,guests,price,note,ci,co,roomIdx,childCnt,dogCnt,bbq});
   }
   _pendingSaveData=null;
   saveReservations();closeResModal();
@@ -2620,7 +2714,7 @@ function saveSettings(){
   saveSettingsStorage();
   currentRoomIdx=Math.min(dr,rooms.length-1);
   const h=document.getElementById('hdrTitle');if(h&&settings.name)h.textContent=`📱 StayMsg (${settings.name})`;
-  updateGuestSelect();updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();
+  updateGuestSelect();updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();res_updateDogRow();res_updateBbqRow();
   renderRoomSelector();
   closeSettings();
   toast('설정이 저장됐어요 ✓');
@@ -2665,7 +2759,7 @@ function selectRoom(idx){
   const el=document.getElementById('dog_count_display');if(el)el.textContent=0;
   const bbq=document.getElementById('chk_bbq');if(bbq)bbq.classList.remove('on');
   renderRoomSelector();
-  updateGuestSelect();updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();
+  updateGuestSelect();updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();res_updateDogRow();res_updateBbqRow();
   autoFillPrice();
 }
 function renderRoomList(){
@@ -2759,7 +2853,7 @@ function saveRoomModal(){
   if(currentRoomIdx>=rooms.length)currentRoomIdx=rooms.length-1;
   closeRoomModal();
   renderRoomList();renderRoomSelector();
-  updateGuestSelect();updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();
+  updateGuestSelect();updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();res_updateDogRow();res_updateBbqRow();
   toast('객실 정보가 저장됐어요 ✓');
 }
 function deleteRoomFromModal(){
@@ -2984,7 +3078,7 @@ loadReservations();
 buildTabs();
 renderStage();
 updateGuestSelect();
-updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();
+updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();res_updateDogRow();res_updateBbqRow();
 renderRoomSelector();
 if(settings.name)document.getElementById('hdrTitle').textContent=`📱 StayMsg (${settings.name})`;
 loadFormState();
