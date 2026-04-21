@@ -339,6 +339,7 @@ input{text-overflow:ellipsis;}
 .month-day:nth-last-child(-n+7){border-bottom:none;}
 .md-num{font-size:11px;font-weight:600;text-align:center;margin-bottom:3px;color:var(--ink);line-height:22px;}
 .md-num-inner{line-height:22px;}
+.md-num small{display:block;font-size:8px;line-height:1;margin-top:1px;font-weight:600;}
 .month-day.sun .md-num{color:#EF4444;}
 .month-day.sat .md-num{color:#3B82F6;}
 .month-day.today.sun .md-num-inner,.month-day.today.sat .md-num-inner{color:white;}
@@ -358,6 +359,17 @@ input{text-overflow:ellipsis;}
 .res-item-dates{font-size:11px;color:var(--ink-light);margin-top:2px;}
 .res-item-price{font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;}
 .res-empty{padding:32px 16px;text-align:center;color:var(--ink-light);font-size:13px;}
+.sched-item{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:stretch;gap:10px;cursor:pointer;transition:background .15s;}
+.sched-item:last-child{border-bottom:none;}
+.sched-item:active{background:var(--cream);}
+.sched-line{width:4px;border-radius:4px;flex-shrink:0;min-height:40px;}
+.sched-body{flex:1;min-width:0;}
+.sched-name{font-size:14px;color:var(--ink);line-height:1.3;}
+.sched-guests{font-size:13px;color:var(--ink-light);}
+.sched-range{font-size:11px;color:var(--ink-light);margin-top:3px;}
+.sched-nights{font-size:11px;font-weight:700;color:var(--accent);}
+.sched-note{font-size:11px;color:var(--ink-light);margin-top:2px;}
+.sched-price{font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap;align-self:center;}
 /* Reservation modal */
 .res-modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;}
 .res-modal-ov.open{display:flex;}
@@ -469,8 +481,9 @@ input{text-overflow:ellipsis;}
       <div class="vi" style="grid-column:1/-1;">
         <label>입실 · 퇴실 날짜</label>
         <div class="date-range-btn" id="priceDateBtn" onclick="openPriceDatePicker()">
-          <div class="drb-placeholder">📅 날짜를 선택하세요</div>
+          <div class="drb-placeholder" id="priceDatePlaceholder">📅 날짜를 선택하세요</div>
         </div>
+        <div id="priceDateDays" class="date-range-days"></div>
         <input type="hidden" id="c_checkin">
         <input type="hidden" id="c_checkout">
       </div>
@@ -484,7 +497,7 @@ input{text-overflow:ellipsis;}
             <option>9명</option><option>10명</option>
           </select>
         </div>
-        <div class="vi"><label>예상 금액</label><div id="p_priceQuick" style="padding:9px 12px;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-weight:700;color:var(--accent);min-height:38px;">—</div></div>
+        <div class="vi"><label>숙박 금액</label><input type="tel" id="p_price" placeholder="자동계산 또는 직접 입력" oninput="this._manual=true;fmtPrice(this)"></div>
       </div>
     </div>
     <!-- 체크박스 -->
@@ -1432,6 +1445,9 @@ function _updatePriceDateBtn(){
   const ci=document.getElementById('c_checkin').value;
   const co=document.getElementById('c_checkout').value;
   const btn=document.getElementById('priceDateBtn');
+  const daysEl=document.getElementById('priceDateDays');
+  const priceInput=document.getElementById('p_price');
+  if(priceInput)priceInput._manual=false;
   if(!btn)return;
   if(ci&&co){
     const n=Math.round((new Date(co)-new Date(ci))/86400000);
@@ -1448,30 +1464,33 @@ function _updatePriceDateBtn(){
         <span class="drb-date">${cop.date}</span>
         <span class="drb-sub">${cop.dow}요일 · <span style="color:${cop.color};font-weight:600">${cop.tag}</span></span>
       </div>`;
+    if(daysEl)daysEl.textContent=`${n}박 ${n+1}일`;
   } else {
     btn.innerHTML=`<div class="drb-placeholder">📅 날짜를 선택하세요</div>`;
+    if(daysEl)daysEl.textContent='';
   }
 }
 function calcPricePage(){
   const ci=document.getElementById('c_checkin').value;
   const co=document.getElementById('c_checkout').value;
   const resEl=document.getElementById('calcResult');
-  const quick=document.getElementById('p_priceQuick');
+  const priceInput=document.getElementById('p_price');
   if(!ci||!co){
     resEl.style.display='none';
-    if(quick)quick.textContent='—';
+    if(priceInput&&!priceInput._manual)priceInput.value='';
     return;
   }
   const guestsSel=document.getElementById('c_guests').value;
   const res=calcNights(ci,co,guestsSel||'',p_childCount,p_dogCount,p_bbq);
   if(!res||!res.nights){
     resEl.style.display='none';
-    if(quick)quick.textContent='오류';
     return;
   }
   resEl.style.display='block';
   resEl.innerHTML=buildBreakdownHtml(res,false);
-  if(quick)quick.textContent=res.finalTotal?res.finalTotal.toLocaleString('ko-KR')+'원':'—';
+  if(priceInput&&!priceInput._manual){
+    priceInput.value=res.finalTotal?res.finalTotal.toLocaleString('ko-KR')+'원':'';
+  }
 }
 
 /* =============================================
@@ -1516,24 +1535,34 @@ function _renderMonthGrid(y,m){
   for(let i=first-1;i>=0;i--){
     html+=`<div class="month-day other-month"><div class="md-num"><span class="md-num-inner">${prevDays-i}</span></div></div>`;
   }
+  const PT_CLS_M={peak:'pk-lbl',semi:'sm-lbl',special:'sp-lbl',discount:'dc-lbl'};
+  const PT_LBL_M={peak:'성수기',semi:'준성수기',special:'특별',discount:'할인'};
   for(let d=1;d<=days;d++){
     const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dow=(first+d-1)%7;
     const isToday=ds===today;
     const isSel=ds===_selectedDay;
+    const isSun=dow===0;const isWe=dow===5||dow===6;
     const dayRes=reservations.filter(r=>r.ci&&r.co&&ds>=r.ci&&ds<r.co);
-    const cls=['month-day',dow===0?'sun':dow===6?'sat':'',isToday?'today':'',isSel?'selected':''].filter(Boolean).join(' ');
+    const cls=['month-day',isSun?'sun':isWe?'sat':'',isToday?'today':'',isSel?'selected':''].filter(Boolean).join(' ');
+    // period/day label
+    const period=periods.find(p=>['peak','semi','special','discount'].includes(p.type)&&ds>=p.start&&ds<=p.end);
+    const dayLbl=period
+      ?`<small class="${PT_CLS_M[period.type]||'pk-lbl'}">${period.label||PT_LBL_M[period.type]||'특별'}</small>`
+      :isWe?'<small class="we-lbl">주말</small>'
+      :isSun?'<small class="su-lbl">일</small>'
+      :'<small class="wd-lbl">주중</small>';
     // chips: ci day shows name, mid/co days show thin bar
     const chips=dayRes.slice(0,3).map(r=>{
       const isCi=r.ci===ds;
-      const isCo=new Date(r.co)-new Date(ds)===86400000; // last night
+      const isCo=new Date(r.co)-new Date(ds)===86400000;
       const chipCls=isCi?'ci-day':(isCo?'co-day':'mid-day');
       const label=isCi?(r.name||'손님').slice(0,5):'';
       return `<div class="res-chip ${chipCls}" style="background:${resColor(r.id)};">${label}</div>`;
     }).join('');
     const more=dayRes.length>3?`<div class="res-more">+${dayRes.length-3}</div>`:'';
     html+=`<div class="${cls}" onclick="calDayClick('${ds}')">
-      <div class="md-num"><span class="md-num-inner">${d}</span></div>
+      <div class="md-num"><span class="md-num-inner">${d}</span>${dayLbl}</div>
       ${chips}${more}
     </div>`;
   }
@@ -1568,19 +1597,22 @@ function _renderDayDetail(ds){
     listEl.style.display='none';
     return;
   }
+  const DOW_SD=['일','월','화','수','목','금','토'];
   const items=dayRes.map(r=>{
-    const nights=r.ci&&r.co?Math.round((new Date(r.co)-new Date(r.ci))/86400000):'';
-    const ciStr=r.ci?r.ci.slice(5).replace('-','.'):'';
-    const coStr=r.co?r.co.slice(5).replace('-','.'):'';
-    const price=r.price?parseNum(r.price).toLocaleString('ko-KR')+'원':'';
-    return `<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;cursor:pointer;" onclick="openResModal('${r.id}')">
-      <div style="width:5px;border-radius:3px;background:${resColor(r.id)};flex-shrink:0;align-self:stretch;"></div>
-      <div style="flex:1;">
-        <div style="font-size:14px;font-weight:700;color:var(--ink);">${r.name||'이름 없음'}${r.guests?' · '+r.guests:''}</div>
-        <div style="font-size:11px;color:var(--ink-light);margin-top:3px;">${ciStr} → ${coStr}${nights?' · '+nights+'박':''}</div>
-        ${r.note?`<div style="font-size:11px;color:var(--ink-light);margin-top:2px;">📝 ${r.note}</div>`:''}
+    const ciD=r.ci?new Date(r.ci+'T00:00:00'):null;
+    const coD=r.co?new Date(r.co+'T00:00:00'):null;
+    const nights=ciD&&coD?Math.round((coD-ciD)/86400000):0;
+    const ciStr=ciD?`${r.ci.slice(5).replace('-','.')}(${DOW_SD[ciD.getDay()]})`:'-';
+    const coStr=coD?`${r.co.slice(5).replace('-','.')}(${DOW_SD[coD.getDay()]})`:'-';
+    const color=resColor(r.id);
+    return `<div class="sched-item" onclick="openResModal('${r.id}')">
+      <div class="sched-line" style="background:${color};"></div>
+      <div class="sched-body">
+        <div class="sched-name"><span style="font-weight:700;">${r.name||'이름 없음'}</span>${r.guests?`<span class="sched-guests"> · ${r.guests}</span>`:''}</div>
+        <div class="sched-range">${ciStr} → ${coStr} <span class="sched-nights">${nights}박</span></div>
+        ${r.note?`<div class="sched-note">📝 ${r.note}</div>`:''}
       </div>
-      ${price?`<div style="font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;align-self:center;">${price}</div>`:''}
+      ${r.price?`<div class="sched-price">${parseNum(r.price).toLocaleString('ko-KR')}원</div>`:''}
     </div>`;
   }).join('');
   detailEl.style.display='block';
@@ -1605,19 +1637,22 @@ function _renderResList(){
     listEl.style.display='block';return;
   }
   const items=all.map(r=>{
-    const ciStr=r.ci?r.ci.slice(5).replace('-','.'):'?';
-    const coStr=r.co?r.co.slice(5).replace('-','.'):'?';
-    const nights=r.ci&&r.co?Math.round((new Date(r.co)-new Date(r.ci))/86400000)+'박':'';
-    const price=r.price?parseNum(r.price).toLocaleString('ko-KR')+'원':'';
+    const ciD=r.ci?new Date(r.ci+'T00:00:00'):null;
+    const coD=r.co?new Date(r.co+'T00:00:00'):null;
+    const nights=ciD&&coD?Math.round((coD-ciD)/86400000):0;
+    const DOW_S=['일','월','화','수','목','금','토'];
+    const ciStr=ciD?`${r.ci.slice(5).replace('-','.')}(${DOW_S[ciD.getDay()]})`:'-';
+    const coStr=coD?`${r.co.slice(5).replace('-','.')}(${DOW_S[coD.getDay()]})`:'-';
     const isNow=r.ci<=today&&r.co>today;
-    return `<div class="res-item" onclick="openResModal('${r.id}')">
-      <div class="res-item-color" style="background:${resColor(r.id)};"></div>
-      <div class="res-item-info">
-        <div class="res-item-name">${isNow?'🏠 ':''}<b>${r.name||'이름 없음'}</b>${r.guests?' · '+r.guests:''}</div>
-        <div class="res-item-dates">${ciStr} → ${coStr}${nights?' ('+nights+')':''}</div>
-        ${r.note?`<div style="font-size:10px;color:var(--ink-light);">📝 ${r.note}</div>`:''}
+    const color=resColor(r.id);
+    return `<div class="sched-item" onclick="openResModal('${r.id}')">
+      <div class="sched-line" style="background:${color};"></div>
+      <div class="sched-body">
+        <div class="sched-name">${isNow?'🏠 ':''}<span style="font-weight:700;">${r.name||'이름 없음'}</span>${r.guests?`<span class="sched-guests"> · ${r.guests}</span>`:''}</div>
+        <div class="sched-range">${ciStr} → ${coStr} <span class="sched-nights">${nights}박</span></div>
+        ${r.note?`<div class="sched-note">📝 ${r.note}</div>`:''}
       </div>
-      ${price?`<div class="res-item-price">${price}</div>`:''}
+      ${r.price?`<div class="sched-price">${parseNum(r.price).toLocaleString('ko-KR')}원</div>`:''}
     </div>`;
   }).join('');
   listEl.innerHTML=`<div class="res-list"><div class="res-list-head">예약 목록 · ${all.length}건</div>${items}</div>`;
