@@ -1584,7 +1584,7 @@ function openCalYmPicker(){
   _mcalYm=true;
   _renderCalYmPicker();
 }
-function _calPageSetYM(y,m){_mcal.y=y;_mcal.m=m;_mcalYm=false;renderCalPage();}
+function _calPageSetYM(y,m){_mcal.y=y;_mcal.m=m;_mcalYm=false;const el=document.getElementById('_calYmModal');if(el)el.remove();renderCalPage();}
 function _calPageYearStep(d){_mcal.y+=d;_renderCalYmPicker();}
 function _renderCalYmPicker(){
   const old=document.getElementById('_calYmModal');if(old)old.remove();
