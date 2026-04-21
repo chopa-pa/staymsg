@@ -1761,8 +1761,9 @@ function _goMsgFromRes(resId,ds){
   renderRoomSelector();
   updateDogRow();updateBbqRow();
   const stageIdx=ds===r.ci?0:ds===r.co?2:1;
+  curStage=stageIdx;
   goPage('msg');
-  switchStage(stageIdx);
+  document.querySelectorAll('.stab').forEach((t,j)=>t.classList.toggle('active',j===stageIdx));
   window.scrollTo({top:0,behavior:'instant'});
 }
 function _schedItemClick(id,ci){
