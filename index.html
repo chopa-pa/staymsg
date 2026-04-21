@@ -1373,7 +1373,7 @@ function renderPriceRoomSel(){
   if(rooms.length<=1){el.style.display='none';return;}
   el.style.display='flex';
   el.innerHTML=rooms.map((r,i)=>
-    `<button class="room-btn${i===curRoom?' active':''}" onclick="curRoom=${i};renderPriceRoomSel();p_updateDogRow();p_updateBbqRow();calcPricePage();">${r.name||'객실'}</button>`
+    `<button class="room-btn${i===currentRoomIdx?' active':''}" onclick="currentRoomIdx=${i};renderPriceRoomSel();p_updateDogRow();p_updateBbqRow();calcPricePage();">${r.name||'객실'}</button>`
   ).join('');
 }
 
