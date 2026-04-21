@@ -1704,7 +1704,7 @@ function _renderDayDetail(ds){
     return;
   }
   const DOW_SD=['일','월','화','수','목','금','토'];
-  const items=dayRes.map(r=>_schedItemHtml(r)).join('');
+  const items=dayRes.map(r=>_schedItemHtml(r,false,ds)).join('');
   detailEl.style.display='block';
   detailEl.innerHTML=`<div class="res-list" style="margin-bottom:12px;">
     <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
@@ -1716,7 +1716,7 @@ function _renderDayDetail(ds){
   listEl.style.display='none';
 }
 
-function _schedItemHtml(r,isNow){
+function _schedItemHtml(r,isNow,ds){
   const DOW=['일','월','화','수','목','금','토'];
   const ciD=r.ci?new Date(r.ci+'T00:00:00'):null;
   const coD=r.co?new Date(r.co+'T00:00:00'):null;
@@ -1728,6 +1728,7 @@ function _schedItemHtml(r,isNow){
   if(r.childCnt>0)extras.push(`👶 아동 ${r.childCnt}명`);
   if(r.dogCnt>0)extras.push(`🐶 강아지 ${r.dogCnt}마리`);
   if(r.bbq)extras.push(`🔥 바베큐`);
+  const msgBtn=ds?`<button class="cal-add-btn" style="font-size:11px;padding:5px 10px;margin-top:6px;" onclick="event.stopPropagation();_goMsgFromRes('${r.id}','${ds}')">💬 문자</button>`:'';
   return `<div class="sched-item" onclick="_schedItemClick('${r.id}','${r.ci||''}')">
     <div class="sched-line" style="background:${color};"></div>
     <div class="sched-body">
@@ -1735,9 +1736,33 @@ function _schedItemHtml(r,isNow){
       <div class="sched-range">${ciStr} → ${coStr} <span class="sched-nights">${nights}박</span></div>
       ${extras.length?`<div class="sched-note">${extras.join(' · ')}</div>`:''}
       ${r.note?`<div class="sched-note">📝 ${r.note}</div>`:''}
+      ${msgBtn}
     </div>
     ${r.price?`<div class="sched-price">${parseNum(r.price).toLocaleString('ko-KR')}원</div>`:''}
   </div>`;
+}
+function _goMsgFromRes(resId,ds){
+  const r=reservations.find(x=>x.id===resId);
+  if(!r)return;
+  document.getElementById('v_name').value=r.name||'';
+  document.getElementById('v_phone').value=r.phone||'';
+  document.getElementById('v_checkin').value=r.ci||'';
+  document.getElementById('v_checkout').value=r.co||'';
+  document.getElementById('v_guests').value=r.guests||'';
+  childCount=r.childCnt||0;
+  dogCount=r.dogCnt||0;
+  const cdEl=document.getElementById('child_count_display');if(cdEl)cdEl.textContent=childCount;
+  const ddEl=document.getElementById('dog_count_display');if(ddEl)ddEl.textContent=dogCount;
+  const bbqEl=document.getElementById('chk_bbq');
+  if(bbqEl){if(r.bbq)bbqEl.classList.add('on');else bbqEl.classList.remove('on');}
+  if(r.price){const pe=document.getElementById('v_price');if(pe){pe.value=Number(r.price).toLocaleString('ko-KR')+'원';pe._manual=true;}}
+  currentRoomIdx=_resRoomIdx(r);
+  _updateDateDisplay();
+  renderRoomSelector();
+  updateDogRow();updateBbqRow();
+  const stageIdx=ds===r.ci?0:ds===r.co?2:1;
+  goPage('msg');
+  switchStage(stageIdx);
 }
 function _schedItemClick(id,ci){
   if(ci){
