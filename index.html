@@ -365,7 +365,7 @@ input{text-overflow:ellipsis;}
 .res-chip{font-size:9px;font-weight:700;padding:1px 3px;border-radius:3px;color:white;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:14px;}
 .res-chip.ci-day{border-radius:6px 2px 2px 6px;}
 .res-chip.mid-day{border-radius:0;opacity:.85;}
-.res-chip.co-day{border-radius:2px 6px 6px 2px;opacity:.7;}
+.res-chip.co-day{border-radius:2px 6px 6px 2px;opacity:.55;font-size:8px;}
 .res-more{font-size:8px;color:var(--ink-light);text-align:center;}
 .res-list{background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px var(--shadow);margin-bottom:12px;}
 .res-list-head{padding:12px 16px;font-size:12px;font-weight:700;color:var(--ink-light);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border);}
@@ -1599,7 +1599,7 @@ function _renderMonthGrid(y,m){
     const isToday=ds===today;
     const isSel=ds===_selectedDay;
     const isSun=dow===0;const isWe=dow===5||dow===6;
-    const dayRes=reservations.filter(r=>_resRoomIdx(r)===calRoom&&r.ci&&r.co&&ds>=r.ci&&ds<r.co);
+    const dayRes=reservations.filter(r=>_resRoomIdx(r)===calRoom&&r.ci&&r.co&&ds>=r.ci&&ds<=r.co);
     const bgc=!isSel?_periodBgCls(ds):'';
     const holi=HOLIDAYS[ds];
     const cls=['month-day',isSun?'sun':isWe?'sat':'',isToday?'today':'',isSel?'selected':'',bgc,holi?'holiday':''].filter(Boolean).join(' ');
@@ -1607,12 +1607,11 @@ function _renderMonthGrid(y,m){
       :isWe?'<small class="we-lbl">주말</small>'
       :isSun?'<small class="su-lbl">일</small>'
       :'<small class="wd-lbl">주중</small>';
-    // chips: ci day shows name, mid/co days show thin bar
     const chips=dayRes.slice(0,3).map(r=>{
       const isCi=r.ci===ds;
-      const isCo=new Date(r.co)-new Date(ds)===86400000;
+      const isCo=r.co===ds;
       const chipCls=isCi?'ci-day':(isCo?'co-day':'mid-day');
-      const label=isCi?(r.name||'손님').slice(0,5):'';
+      const label=isCi?(r.name||'손님').slice(0,5):isCo?'퇴':'';
       return `<div class="res-chip ${chipCls}" style="background:${resColor(r.id)};">${label}</div>`;
     }).join('');
     const more=dayRes.length>3?`<div class="res-more">+${dayRes.length-3}</div>`:'';
@@ -1636,7 +1635,7 @@ function calDayClick(ds){
 }
 
 function _renderDayDetail(ds){
-  const dayRes=reservations.filter(r=>_resRoomIdx(r)===calRoom&&r.ci&&r.co&&ds>=r.ci&&ds<r.co);
+  const dayRes=reservations.filter(r=>_resRoomIdx(r)===calRoom&&r.ci&&r.co&&ds>=r.ci&&ds<=r.co);
   const detailEl=document.getElementById('calDayDetail');
   const listEl=document.getElementById('resList');
   const mm=ds.slice(5,7),dd=ds.slice(8,10);
