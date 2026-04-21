@@ -918,30 +918,51 @@ function getDatesBetween(startStr,endStr){
 }
 
 function getDayType(dateStr){
-  // 특별 기간 우선 체크 (우선순위: peak > semi > special > discount)
+  const dow=new Date(dateStr+'T00:00:00').getDay();
+  const isWe=dow===5||dow===6;
+  const regWd=parseNum(getRoom().pw);
+  const regWe=parseNum(getRoom().pwe)||regWd;
+
   const priority=['peak','semi','special','discount'];
   for(const pt of priority){
     const found=periods.find(p=>p.type===pt&&dateStr>=p.start&&dateStr<=p.end);
     if(found){
       const sp=getRoom().specialPrices?.[found.id]||{};
-      const dow=new Date(dateStr+'T00:00:00').getDay();
-      const isWe=dow===5||dow===6;
-      const pwe=typeof sp==='object'?sp.pwe:null;
-      const pw=typeof sp==='object'?sp.pw:(typeof sp==='string'?sp:'');
-      const price=parseNum(isWe&&pwe?pwe:pw);
-      return {type:found.type,price,label:found.label||PT[found.type].label};
+      const rawPw=typeof sp==='object'?sp.pw:(typeof sp==='string'?sp:'');
+      const rawPwe=typeof sp==='object'?sp.pwe:'';
+      const hasPw=rawPw&&parseNum(rawPw)>0;
+      const hasPwe=rawPwe&&parseNum(rawPwe)>0;
+      const periodLabel=found.label||PT[found.type].label;
+
+      // 특별 기간 요금 미설정 → 기본 요금으로 fallback
+      if(!hasPw&&!hasPwe){
+        return isWe
+          ?{type:'weekend',price:regWe,label:'주말'}
+          :{type:'weekday',price:regWd,label:'주중'};
+      }
+
+      // 주중/주말 둘 다 설정된 경우 → 구분 표시
+      if(hasPw&&hasPwe){
+        return isWe
+          ?{type:found.type,price:parseNum(rawPwe),label:periodLabel+' 주말'}
+          :{type:found.type,price:parseNum(rawPw),label:periodLabel+' 주중'};
+      }
+
+      // 주중만 설정 → 주말도 주중 금액 사용
+      if(hasPw){
+        return {type:found.type,price:parseNum(rawPw),label:periodLabel};
+      }
+
+      // 주말만 설정 → 주말은 설정값, 주중은 기본 요금
+      return isWe
+        ?{type:found.type,price:parseNum(rawPwe),label:periodLabel+' 주말'}
+        :{type:'weekday',price:regWd,label:'주중'};
     }
   }
-  // 공휴일 체크 (간단 버전 - 설정된 공휴일)
-  // 기본 주중/주말
-  const dow=new Date(dateStr+'T00:00:00').getDay(); // 0=일,6=토
-  if(dow===5||dow===6){
-    const p=parseNum(getRoom().pwe);
-    return {type:'weekend',price:p,label:'주말'};
-  }else{
-    const p=parseNum(getRoom().pw);
-    return {type:'weekday',price:p,label:'주중'};
-  }
+
+  return isWe
+    ?{type:'weekend',price:regWe,label:'주말'}
+    :{type:'weekday',price:regWd,label:'주중'};
 }
 
 function calcNights(startStr,endStr,guestStr,childCnt,dogCnt,bbq){
