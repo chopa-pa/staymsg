@@ -419,10 +419,9 @@ input{text-overflow:ellipsis;}
 <!-- 문자 탭 스테이지 탭 -->
 <div class="stabs" id="stageTabs"></div>
 
-<div id="roomSelector" style="display:none;"></div>
-
 <!-- ===== PAGE: 문자 ===== -->
 <div class="page active" id="page-msg">
+  <div id="roomSelector" style="display:none;"></div>
   <div class="var-panel">
     <h3>✏️ 손님 정보 입력</h3>
     <div class="var-grid">
@@ -568,11 +567,11 @@ input{text-overflow:ellipsis;}
   <button class="bnav-btn active" id="bnav-msg" onclick="goPage('msg')">
     <span class="ni">💬</span>문자
   </button>
-  <button class="bnav-btn" id="bnav-cal" onclick="goPage('cal')">
-    <span class="ni">📅</span>캘린더
-  </button>
   <button class="bnav-btn" id="bnav-price" onclick="goPage('price')">
     <span class="ni">🧮</span>요금
+  </button>
+  <button class="bnav-btn" id="bnav-cal" onclick="goPage('cal')">
+    <span class="ni">📅</span>캘린더
   </button>
   <button class="bnav-btn" id="bnav-set" onclick="openSettings()">
     <span class="ni">⚙️</span>설정
