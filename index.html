@@ -1,0 +1,1903 @@
+<!--
+  StayMsg - 민박·게스트하우스 문자 템플릿 & 요금 계산 PWA
+  Copyright (c) 2026 lottopet@gmail.com. All rights reserved.
+  무단 복제, 배포, 수정을 금지합니다.
+  Unauthorized copying, distribution, or modification of this software is strictly prohibited.
+-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>StayMsg</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#2C2416">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StayMsg">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#F5F6F8;--paper:#FFFFFF;--ink:#1C1C1E;--ink-light:#8E8E93;
+  --accent:#FF6B4A;--al:#FFB59E;--green:#34C759;--gl:#E6F9ED;
+  --border:#E5E5EA;--shadow:rgba(0,0,0,0.08);
+  --c1:#3B82F6;--c2:#F59E0B;--c3:#10B981;--c4:#8B5CF6;--c5:#EC4899;--c6:#EF4444;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;}
+
+/* HEADER */
+header{background:white;padding:14px 18px 12px;position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border);box-shadow:0 1px 8px var(--shadow);}
+.hdr-row{display:flex;align-items:center;justify-content:space-between;}
+header h1{font-size:17px;font-weight:700;color:var(--accent);letter-spacing:-.02em;}
+header p{font-size:10px;color:var(--ink-light);margin-top:2px;}
+.btn-cfg{background:none;border:none;color:var(--ink-light);font-size:22px;cursor:pointer;padding:2px 0 2px 10px;}
+
+/* BOTTOM NAV */
+.bnav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:white;border-top:1px solid var(--border);
+  display:flex;z-index:100;box-shadow:0 -2px 12px var(--shadow);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.bnav-btn{
+  flex:1;padding:10px 4px 11px;background:none;border:none;
+  color:var(--ink-light);font-size:10px;font-family:'Noto Sans KR',sans-serif;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;
+  transition:color .2s;
+}
+.bnav-btn .ni{font-size:20px;}
+.bnav-btn.active{color:var(--accent);}
+
+/* PAGES */
+.page{display:none;padding:14px;max-width:600px;margin:0 auto;padding-bottom:80px;}
+.page.active{display:block;}
+
+/* STAGE TABS */
+.stabs{display:flex;overflow-x:auto;background:white;border-bottom:1px solid var(--border);scrollbar-width:none;position:sticky;top:57px;z-index:50;padding:0 6px;}
+.stabs::-webkit-scrollbar{display:none;}
+.stab{
+  flex:0 0 auto;padding:10px 14px 9px;font-size:11px;font-weight:500;
+  color:var(--ink-light);cursor:pointer;border-bottom:3px solid transparent;
+  white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;
+  font-family:'Noto Sans KR',sans-serif;display:flex;flex-direction:column;align-items:center;gap:3px;
+  transition:color .2s;
+}
+.stab .ti{font-size:15px;}
+.stab.active{color:var(--ink);font-weight:700;}
+.stab:nth-child(1).active{border-bottom-color:var(--c1);}
+.stab:nth-child(2).active{border-bottom-color:var(--c2);}
+.stab:nth-child(3).active{border-bottom-color:var(--c3);}
+.stab:nth-child(4).active{border-bottom-color:var(--c4);}
+.stab:nth-child(5).active{border-bottom-color:var(--c5);}
+.stab:nth-child(6).active{border-bottom-color:var(--c6);}
+
+/* CARD */
+.card{background:white;border:none;border-radius:16px;margin-bottom:12px;overflow:hidden;box-shadow:0 2px 12px var(--shadow);}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:white;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+.card-t{font-size:14px;font-weight:600;color:var(--ink);}
+.card-tog{font-size:12px;color:var(--ink-light);transition:transform .25s;}
+.card-tog.open{transform:rotate(180deg);}
+.card-b{padding:14px 16px;display:none;}
+.card-b.open{display:block;}
+.tpl-text{font-size:13px;line-height:1.9;background:var(--cream);border:none;border-radius:12px;padding:14px;white-space:pre-wrap;word-break:break-all;min-height:70px;margin-bottom:10px;}
+.tpl-edit{width:100%;font-size:13px;line-height:1.9;background:white;border:2px solid var(--accent);border-radius:12px;padding:13px;min-height:110px;margin-bottom:10px;font-family:'Noto Sans KR',sans-serif;resize:vertical;outline:none;}
+.card-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* BUTTONS */
+.btn{padding:10px 14px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Noto Sans KR',sans-serif;border:none;white-space:nowrap;transition:all .2s;}
+.btn-dark{background:var(--ink);color:white;flex:1;min-width:90px;}
+.btn-dark:active{background:#3a3a3c;}
+.btn-dark.copied{background:var(--green);}
+.btn-green{background:var(--gl);color:#1a7a35;border:1px solid #b8eac8;}
+.btn-green:active{background:#d0f0dc;}
+.btn-muted{background:var(--cream);color:var(--ink-light);border:1px solid var(--border);}
+.btn-muted:active{background:var(--border);}
+.btn-save2{background:var(--accent);color:white;}
+.btn-del{background:#FFF0F0;color:#D63030;border:1px solid #F5C0C0;}
+.btn-add{width:100%;padding:13px;background:white;border:1.5px dashed var(--border);border-radius:14px;color:var(--ink-light);font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s;margin-top:4px;}
+.btn-add:active{background:var(--cream);border-color:var(--accent);color:var(--accent);}
+.var-chips{display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 4px;}
+.var-chip{padding:5px 10px;background:var(--cream);border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--ink-light);cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .15s;white-space:nowrap;}
+.var-chip:active{background:var(--ink);color:white;border-color:var(--ink);}
+.emoji-toggle{font-size:11px;color:var(--ink-light);background:var(--cream);border:1px solid var(--border);border-radius:20px;padding:5px 12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-bottom:6px;}
+.emoji-panel{display:none;flex-wrap:wrap;gap:2px;padding:8px 6px;background:var(--cream);border-radius:12px;margin-bottom:8px;}
+.emoji-panel.open{display:flex;}
+.emoji-btn{font-size:22px;background:none;border:none;cursor:pointer;padding:5px;border-radius:8px;line-height:1;}
+.emoji-btn:active{background:white;}
+.btn-primary{width:100%;padding:14px;background:var(--accent);color:white;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-top:6px;transition:all .2s;letter-spacing:-.01em;}
+.btn-primary:active{background:#e55a3a;}
+
+/* VAR PANEL */
+.var-panel{background:white;border:none;border-radius:20px;padding:16px;margin-bottom:14px;box-shadow:0 2px 12px var(--shadow);overflow:visible;}
+.var-panel h3{font-size:11px;font-weight:700;color:var(--ink-light);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
+.var-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.vi label{display:block;font-size:11px;color:var(--ink-light);margin-bottom:4px;font-weight:500;}
+.vi input,.vi select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--ink);outline:none;transition:border-color .2s;}
+.vi input[type="date"]{color-scheme:light;background:#FFFFFF;color:#1C1C1E;opacity:1;}
+/* 날짜 선택 버튼 */
+.date-range-btn{display:flex;align-items:center;border:1.5px solid var(--border);border-radius:14px;background:var(--cream);cursor:pointer;transition:border-color .2s;user-select:none;overflow:hidden;}
+.date-range-btn:active{border-color:var(--accent);}
+.drb-side{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:2px;}
+.drb-side.ci{border-right:1px solid var(--border);}
+.drb-label{font-size:10px;color:var(--ink-light);font-weight:600;letter-spacing:.03em;}
+.drb-date{font-size:15px;font-weight:700;color:var(--ink);}
+.drb-sub{font-size:10px;color:#8E8E93;}
+.drb-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 8px;gap:3px;flex-shrink:0;}
+.drb-arrow{font-size:14px;color:var(--ink-light);}
+.drb-nights{font-size:11px;font-weight:700;color:var(--accent);white-space:nowrap;}
+.drb-placeholder{flex:1;padding:14px;text-align:center;color:#C7C7CC;font-size:13px;}
+.date-range-days{display:none;}
+
+/* 달력 모달 */
+.cal-ov{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:flex-end;justify-content:center;}
+.cal-box{background:white;border-radius:22px 22px 0 0;width:100%;max-width:520px;padding:20px 16px 32px;max-height:92vh;overflow-y:auto;}
+.cal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.cal-nav{background:none;border:none;font-size:22px;color:var(--ink-light);cursor:pointer;padding:4px 10px;border-radius:8px;}
+.cal-nav:active{background:var(--cream);}
+.cal-title{font-size:16px;font-weight:700;}
+.cal-hint{text-align:center;font-size:12px;color:var(--accent);font-weight:600;margin-bottom:12px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-dow{text-align:center;font-size:11px;color:var(--ink-light);padding:4px 0;font-weight:600;}
+.cal-dow:first-child{color:#EF4444;}
+.cal-dow:last-child{color:#3B82F6;}
+.cal-day{text-align:center;padding:7px 2px;border-radius:10px;cursor:pointer;font-size:13px;position:relative;transition:background .15s;}
+.cal-day:active{opacity:.7;}
+.cal-day.cal-dis{color:#C7C7CC;cursor:default;pointer-events:none;}
+.cal-day.cal-range{background:#FFE8E2;border-radius:0;}
+.cal-day.cal-sel{background:var(--accent);color:white;font-weight:700;border-radius:10px;}
+.cal-day.cal-ci{border-radius:10px 0 0 10px;}
+.cal-day.cal-co{border-radius:0 10px 10px 0;}
+.cal-day small{display:block;font-size:9px;margin-top:1px;font-weight:600;}
+.cal-day.cal-sel small{color:rgba(255,255,255,.85);}
+.cal-today{outline:2px solid var(--accent);outline-offset:-2px;}
+.we-lbl{color:#C05A1F;font-weight:600;}
+.su-lbl{color:#EF4444;font-weight:600;}
+.wd-lbl{color:#8E8E93;}
+.is-desktop .date-ico{display:none;}
+.is-mobile .var-grid{grid-template-columns:1fr;}
+.cal-actions{display:flex;gap:8px;margin-top:16px;}
+.cal-confirm{flex:1;padding:13px;background:var(--accent);color:white;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+.cal-cancel{padding:13px 18px;background:var(--cream);border:none;border-radius:14px;font-size:14px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;color:var(--ink-light);}
+.vi input:focus,.vi select:focus{border-color:var(--accent);background:white;}
+.vi select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238E8E93' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;cursor:pointer;}
+
+/* 요금 자동계산 결과 */
+.price-result{background:var(--gl);border:none;border-radius:12px;padding:12px 14px;margin-top:10px;font-size:12px;color:#1a7a35;line-height:1.7;}
+.price-result strong{font-size:15px;color:#1a7a35;font-weight:700;}
+
+/* CHECK ITEMS */
+.check-row{display:flex;gap:8px;margin-top:12px;flex-direction:column;}
+.chk-item{display:flex;align-items:center;gap:8px;background:var(--cream);border:1.5px solid var(--border);border-radius:14px;padding:10px 14px;cursor:pointer;transition:all .2s;flex:1;min-width:130px;}
+.chk-item.on{border-color:var(--accent);background:#FFF2EE;}
+.chk-box{width:20px;height:20px;border:2px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;background:white;}
+.chk-item.on .chk-box{background:var(--accent);border-color:var(--accent);}
+.chk-box::after{content:'';display:none;width:5px;height:9px;border:2px solid white;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px);}
+.chk-item.on .chk-box::after{display:block;}
+.chk-label{font-size:12px;color:var(--ink);line-height:1.3;}
+.chk-label small{display:block;font-size:10px;color:var(--ink-light);margin-top:1px;}
+
+.var-hint{font-size:10px;color:var(--ink-light);margin-top:12px;line-height:1.9;}
+.var-hint code{background:var(--cream);border:1px solid var(--border);border-radius:5px;padding:2px 6px;font-size:10px;color:var(--accent);margin:0 2px;}
+
+/* STAGE HEADER */
+.stage-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.stage-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.stage-hdr h2{font-size:16px;font-weight:700;}
+.stage-desc{font-size:12px;color:var(--ink-light);margin-left:20px;margin-bottom:14px;}
+
+/* SETTINGS PAGE */
+.set-section{background:white;border:none;border-radius:16px;margin-bottom:14px;overflow:hidden;box-shadow:0 2px 10px var(--shadow);}
+.set-title{font-size:12px;font-weight:700;color:var(--ink-light);letter-spacing:.06em;text-transform:uppercase;padding:13px 16px 9px;background:white;border-bottom:1px solid var(--border);}
+.set-row{padding:12px 16px;border-bottom:1px solid var(--border);}
+.set-row:last-child{border-bottom:none;}
+.set-row label{display:block;font-size:11px;color:var(--ink-light);margin-bottom:5px;font-weight:500;}
+.set-row input,.set-row select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--ink);outline:none;}
+.set-row input:focus,.set-row select:focus{border-color:var(--accent);background:white;}
+.set-row input:disabled{opacity:.4;cursor:not-allowed;}
+input::placeholder,textarea::placeholder{color:#C7C7CC;}
+input{text-overflow:ellipsis;}
+
+/* 기본 요금표 */
+.ptable{width:100%;border-collapse:collapse;}
+.ptable th{font-size:11px;color:var(--ink-light);padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);background:var(--cream);}
+.ptable td{padding:8px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.ptable tr:last-child td{border-bottom:none;}
+.p-lbl{font-size:12px;font-weight:500;padding-left:10px;white-space:nowrap;}
+.p-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+.p-inp-w{position:relative;}
+.p-inp-w input{width:100%;padding:8px 28px 8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--ink);outline:none;text-align:right;}
+.p-inp-w input:focus{border-color:var(--accent);background:white;}
+.p-inp-w span{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--ink-light);pointer-events:none;}
+
+/* 특별 기간 캘린더 */
+.period-list{padding:10px 14px 14px;}
+.period-item{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--cream);border:none;border-radius:12px;margin-bottom:8px;}
+.period-badge{font-size:10px;padding:3px 9px;border-radius:10px;font-weight:700;color:white;white-space:nowrap;flex-shrink:0;}
+.period-dates{font-size:11px;color:var(--ink);flex:1;}
+.period-price{font-size:12px;font-weight:600;color:var(--accent);white-space:nowrap;}
+.period-del{background:none;border:none;color:#D63030;cursor:pointer;font-size:14px;padding:2px 4px;flex-shrink:0;}
+.btn-add-period{width:100%;padding:11px;background:white;border:1.5px dashed var(--border);border-radius:12px;color:var(--ink-light);font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s;margin-top:4px;}
+.btn-add-period:active{background:var(--cream);border-color:var(--accent);color:var(--accent);}
+
+/* 기간 추가 폼 */
+.period-form{background:white;border:2px solid var(--accent);border-radius:14px;padding:16px;margin-bottom:10px;}
+.period-form h4{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px;}
+.pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.pf-item label{display:block;font-size:11px;color:var(--ink-light);margin-bottom:4px;font-weight:500;}
+.pf-item input,.pf-item select{width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--ink);outline:none;}
+.pf-item input:focus,.pf-item select:focus{border-color:var(--accent);background:white;}
+.pf-actions{display:flex;gap:8px;margin-top:8px;}
+
+/* 요금 계산기 패널 */
+.calc-panel{background:white;border:none;border-radius:20px;padding:16px;margin-bottom:14px;box-shadow:0 2px 12px var(--shadow);}
+.calc-panel h3{font-size:12px;font-weight:700;color:var(--ink-light);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;}
+.calc-breakdown{font-size:13px;line-height:2;color:var(--ink-light);}
+.calc-breakdown .row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--border);}
+.calc-breakdown .row:last-child{border-bottom:none;}
+.calc-breakdown .row.total{font-weight:700;color:var(--ink);font-size:15px;border-top:2px solid var(--border);margin-top:4px;padding-top:8px;}
+.calc-breakdown .row .type-badge{font-size:10px;padding:2px 8px;border-radius:8px;color:white;margin-left:4px;vertical-align:middle;}
+
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-ov.open{display:flex;}
+.modal{background:white;border-radius:20px;padding:22px;width:100%;max-width:460px;box-shadow:0 12px 40px rgba(0,0,0,.2);}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:16px;color:var(--ink);}
+.modal label{display:block;font-size:11px;color:var(--ink-light);margin-bottom:5px;margin-top:12px;font-weight:600;letter-spacing:.04em;}
+.modal input,.modal textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-family:'Noto Sans KR',sans-serif;color:var(--ink);background:var(--cream);outline:none;}
+.modal input:focus,.modal textarea:focus{border-color:var(--accent);background:white;}
+.modal textarea{min-height:110px;resize:vertical;line-height:1.8;}
+.modal-actions{display:flex;gap:8px;margin-top:18px;}
+.modal-actions .btn-primary{margin-top:0;}
+.modal-cancel{padding:13px 18px;background:var(--cream);color:var(--ink-light);border:1.5px solid var(--border);border-radius:12px;font-size:14px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+
+/* SETTINGS PANEL */
+.set-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;}
+.set-overlay.open{display:block;}
+.set-panel{position:fixed;top:0;right:0;bottom:0;width:92%;max-width:420px;background:var(--cream);z-index:301;overflow-y:auto;transform:translateX(100%);transition:transform .3s ease;box-shadow:-6px 0 30px rgba(0,0,0,.15);}
+.set-panel.open{transform:translateX(0);}
+
+/* GUEST DROPDOWN */
+.guest-wrap{position:relative;}
+.guest-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:none;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:200;max-height:200px;overflow-y:auto;display:none;}
+.guest-dropdown.open{display:block;}
+.guest-item{padding:11px 14px;font-size:13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
+.guest-sub{background:var(--cream);}
+.guest-sub-item{padding:9px 20px;font-size:12px;color:var(--ink);cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;}
+.guest-sub-item:last-child{border-bottom:none;}
+.guest-sub-item:active{background:white;}
+.guest-item:last-child{border-bottom:none;}
+.guest-item:active{background:var(--cream);}
+.guest-item-name{font-weight:600;color:var(--ink);}
+.guest-item-phone{font-size:11px;color:var(--ink-light);}
+.guest-save-btn{width:36px;height:36px;border:none;border-radius:50%;background:var(--accent);color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;padding:0;}
+.guest-save-btn:active{transform:scale(.9);background:#e55a3a;}
+.guest-save-btn.saved{background:var(--green);}
+.icon-btn{width:36px;height:36px;border:1.5px solid var(--border);border-radius:50%;background:white;color:var(--ink-light);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;padding:0;}
+.icon-btn:active{background:var(--ink);color:white;transform:scale(.9);}
+.room-sel{display:flex;gap:7px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:10px;padding:2px 0 4px;scrollbar-width:none;}
+.room-sel::-webkit-scrollbar{display:none;}
+.room-btn{padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:2px solid #C7C7CC;background:#E5E5EA;color:#3a3a3c;font-family:'Noto Sans KR',sans-serif;transition:all .2s;white-space:nowrap;}
+.room-btn.active{background:var(--accent);color:white;border-color:var(--accent);}
+
+/* ROOM MODAL */
+.room-modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;}
+.room-modal-ov.open{display:block;}
+.room-modal{position:fixed;top:0;right:0;bottom:0;width:92%;max-width:420px;background:var(--cream);z-index:501;overflow-y:auto;transform:translateX(100%);transition:transform .3s ease;box-shadow:-6px 0 30px rgba(0,0,0,.15);}
+.room-modal.open{transform:translateX(0);}
+.room-modal-head{background:white;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border);}
+.room-modal-head h2{font-size:16px;font-weight:700;color:var(--ink);}
+.room-modal-close{background:none;border:none;color:var(--ink-light);font-size:24px;cursor:pointer;padding:0;line-height:1;}
+.set-panel-head{background:white;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border);}
+.set-panel-head h2{font-size:16px;font-weight:700;color:var(--ink);}
+.set-panel-close{background:none;border:none;color:var(--ink-light);font-size:24px;cursor:pointer;padding:0;line-height:1;}
+
+/* TOAST */
+.toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(28,28,30,.9);color:white;padding:11px 22px;border-radius:22px;font-size:13px;font-weight:500;opacity:0;transition:all .28s;pointer-events:none;z-index:999;white-space:nowrap;backdrop-filter:blur(8px);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <div>
+      <h1 id="hdrTitle">📱 StayMsg (스테이 솔숲)</h1>
+      <p>예약 단계별 문자 템플릿 · 자동 요금 계산</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;">
+      <button class="btn-cfg" onclick="forceUpdate()" title="최신버전으로 업데이트">🔄</button>
+      <button class="btn-cfg" onclick="openSettings()">⚙️</button>
+    </div>
+  </div>
+</header>
+
+<!-- 문자 탭 스테이지 탭 -->
+<div class="stabs" id="stageTabs"></div>
+
+<div id="roomSelector" style="display:none;"></div>
+
+<!-- ===== PAGE: 문자 ===== -->
+<div class="page active" id="page-msg">
+  <div class="var-panel">
+    <h3>✏️ 손님 정보 입력</h3>
+    <div class="var-grid">
+      <div class="vi"><label>손님 이름</label>
+        <div class="guest-wrap">
+          <div style="display:flex;gap:5px;">
+            <input type="text" id="v_name" placeholder="예시: 홍길동" oninput="onNameInput()" onfocus="onNameInput()" autocomplete="off" style="flex:1;">
+            <button class="guest-save-btn" id="guestSaveBtn" onclick="saveGuest()" title="손님 저장"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
+          </div>
+          <div class="guest-dropdown" id="guestDropdown"></div>
+        </div>
+      </div>
+      <div class="vi"><label>연락처</label><div style="display:flex;gap:5px;"><input type="tel" id="v_phone" placeholder="예시: 010-1234-5678" oninput="fmtPhone(this);renderAll();onPhoneInput()" maxlength="13" style="flex:1;"><button id="btn_copy_phone" onclick="copyPhone()" class="icon-btn" title="연락처 복사"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></div>
+      <div class="vi" style="grid-column:1/-1;">
+        <label>입실 · 퇴실 날짜</label>
+        <div class="date-range-btn" id="dateRangeBtn" onclick="openDatePicker()">
+          <div class="drb-placeholder" id="dateRangePlaceholder">📅 날짜를 선택하세요</div>
+        </div>
+        <div id="dateRangeDays" class="date-range-days"></div>
+        <input type="hidden" id="v_checkin">
+        <input type="hidden" id="v_checkout">
+      </div>
+      <div class="vi">
+        <label>총인원</label>
+        <select id="v_guests" onchange="renderAll();autoFillPrice()">
+          <option value="">선택</option>
+          <option>1명</option><option>2명</option><option>3명</option><option>4명</option>
+          <option>5명</option><option>6명</option><option>7명</option><option>8명</option>
+          <option>9명</option><option>10명</option>
+        </select>
+      </div>
+      <div class="vi"><label>숙박 금액</label><input type="tel" id="v_price" placeholder="자동계산 또는 직접 입력" oninput="fmtPrice(this)"></div>
+    </div>
+    <!-- 체크박스 -->
+    <div class="check-row">
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;width:100%;">
+        <span class="chk-label">👶 미취학아동<small>만 7세 미만</small></span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="changeChild(-1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:50%;background:white;font-size:15px;cursor:pointer;color:var(--ink);line-height:1;">-</button>
+          <span id="child_count_display" style="font-size:14px;font-weight:600;min-width:18px;text-align:center;">0</span>
+          <button onclick="changeChild(1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:50%;background:white;font-size:15px;cursor:pointer;color:var(--ink);line-height:1;">+</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;width:100%;" id="dog_row">
+        <span class="chk-label">🐶 강아지 동반<small id="dog_row_sub">소형견 가능</small></span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="changeDog(-1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:50%;background:white;font-size:15px;cursor:pointer;color:var(--ink);line-height:1;">-</button>
+          <span id="dog_count_display" style="font-size:14px;font-weight:600;min-width:18px;text-align:center;">0</span>
+          <button onclick="changeDog(1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:50%;background:white;font-size:15px;cursor:pointer;color:var(--ink);line-height:1;">+</button>
+        </div>
+      </div>
+      <div class="chk-item" id="chk_bbq" onclick="toggleBbq()" style="display:none;">
+        <div class="chk-box"></div>
+        <span class="chk-label">🔥 바베큐<small id="bbq_row_sub"></small></span>
+      </div>
+    </div>
+    <!-- 요금 자동계산 결과 -->
+    <div class="price-result" id="priceResult" style="display:none;"></div>
+    <p class="var-hint">
+      손님: <code>{이름}</code><code>{입실}</code><code>{퇴실}</code><code>{인원}</code><code>{금액}</code><code>{연락처}</code><code>{아동}</code><code>{강아지}</code><br>
+      설정: <code>{숙소}</code><code>{주소}</code><code>{계좌}</code><code>{와이파이}</code><code>{비번}</code><code>{주중요금}</code><code>{주말요금}</code><code>{성수기요금}</code>
+    </p>
+  </div>
+  <div id="stageContent"></div>
+</div>
+
+<!-- ===== PAGE: 요금계산기 ===== -->
+<div class="page" id="page-calc">
+  <div class="calc-panel">
+    <h3>🧮 요금 계산기</h3>
+    <div class="var-grid" style="margin-bottom:12px;">
+      <div class="vi"><label>입실 날짜</label><input type="date" id="c_checkin" oninput="calcPrice()"></div>
+      <div class="vi"><label>퇴실 날짜</label><input type="date" id="c_checkout" oninput="calcPrice()"></div>
+    </div>
+    <div id="calcResult"><p style="font-size:12px;color:var(--ink-light);text-align:center;padding:20px 0;">날짜를 선택하면 요금이 자동 계산돼요 🌿</p></div>
+  </div>
+</div>
+
+<!-- 설정 슬라이딩 패널 -->
+<div class="set-overlay" id="setOverlay" onclick="closeSettings()"></div>
+<div class="set-panel" id="setPanel">
+  <div class="set-panel-head">
+    <h2>⚙️ 설정</h2>
+    <button class="set-panel-close" onclick="closeSettings()">✕</button>
+  </div>
+  <div style="padding:16px;">
+
+    <!-- 숙소 정보 -->
+    <div class="set-section">
+      <div class="set-title">🏡 숙소 정보</div>
+      <div class="set-row"><label>숙소 이름</label><input type="text" id="cfg_name" placeholder="예시: 스테이 솔숲"></div>
+      <div class="set-row"><label>숙소 주소</label><input type="text" id="cfg_addr" placeholder="예시: 경남 산청군 ○○로 000"></div>
+      <div class="set-row"><label>계좌번호</label><input type="text" id="cfg_account" placeholder="예시: 농협 000-0000-0000 홍길동"></div>
+      <div class="set-row"><label>와이파이</label><input type="text" id="cfg_wifi" placeholder="예시: MyWifi / 비번: 1234"></div>
+      <div class="set-row">
+        <label>대문 비밀번호</label>
+        <div class="chk-item" id="chk_door_phone" onclick="toggleDoor()" style="margin-bottom:8px;">
+          <div class="chk-box"></div>
+          <span class="chk-label">📱 손님 전번 뒷 4자리 사용<small>연락처 입력 시 자동 적용</small></span>
+        </div>
+        <input type="text" id="cfg_door" placeholder="예시: 1234#">
+        <p id="door_hint" style="font-size:10px;color:var(--al);margin-top:5px;"></p>
+      </div>
+    </div>
+
+    <!-- 객실 관리 -->
+    <div class="set-section">
+      <div class="set-title">🛏️ 객실 관리</div>
+      <div id="roomList" style="padding:10px 14px 0;"></div>
+      <div style="padding:10px 14px 14px;">
+        <button class="btn-add-period" onclick="openRoomModal(-1)">＋ 객실 추가</button>
+      </div>
+    </div>
+
+    <!-- 기본 객실 -->
+    <div class="set-section">
+      <div class="set-title">🏠 기본 객실</div>
+      <div class="set-row">
+        <label>앱 시작 시 기본으로 선택할 객실</label>
+        <select id="cfg_default_room" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--ink);outline:none;appearance:none;-webkit-appearance:none;"></select>
+      </div>
+    </div>
+
+    <!-- 추가 인원 요금 -->
+    <div class="set-section">
+      <div class="set-title">👥 추가 인원 요금</div>
+      <div class="set-row">
+        <label>추가 인원 요금 (1인 · 1박)</label>
+        <div class="p-inp-w"><input type="tel" id="cfg_extra_pp" placeholder="예시: 10,000" oninput="fmtP(this)"><span>원</span></div>
+      </div>
+      <div class="set-row">
+        <div class="chk-item" id="chk_child_fee" onclick="document.getElementById('chk_child_fee').classList.toggle('on')">
+          <div class="chk-box"></div>
+          <span class="chk-label">👶 미취학아동 요금 부과<small>기준인원 초과 시 아동도 요금 적용</small></span>
+        </div>
+      </div>
+      <div class="set-row">
+        <label>미취학아동 요금 (1인 · 1박)</label>
+        <div class="p-inp-w"><input type="tel" id="cfg_child_pp" placeholder="예시: 10,000" oninput="fmtP(this)"><span>원</span></div>
+      </div>
+    </div>
+
+    <!-- 강아지 동반 -->
+    <div class="set-section">
+      <div class="set-title">🐶 강아지 동반</div>
+      <div class="set-row">
+        <div class="chk-item" id="chk_dog_allow" onclick="document.getElementById('chk_dog_allow').classList.toggle('on')">
+          <div class="chk-box"></div>
+          <span class="chk-label">강아지 동반 가능<small>홈화면에 마리 수 선택 표시</small></span>
+        </div>
+      </div>
+      <div class="set-row">
+        <label>최대 마리 수</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="tel" id="cfg_dog_max" placeholder="예: 2" style="width:60px;" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <span style="font-size:13px;color:var(--ink-light);">마리까지 가능</span>
+        </div>
+      </div>
+      <div class="set-row">
+        <label>마리당 요금</label>
+        <div class="p-inp-w"><input type="tel" id="cfg_dog_pp" placeholder="예시: 10,000" oninput="fmtP(this)"><span>원</span></div>
+      </div>
+      <div class="set-row">
+        <label>요금 부과 방식</label>
+        <select id="cfg_dog_fee_type" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--ink);outline:none;">
+          <option value="per_night">1박당 요금</option>
+          <option value="flat">전체 일정 1회</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 바베큐 -->
+    <div class="set-section">
+      <div class="set-title">🔥 바베큐</div>
+      <div class="set-row">
+        <div class="chk-item" id="chk_bbq_allow" onclick="document.getElementById('chk_bbq_allow').classList.toggle('on')">
+          <div class="chk-box"></div>
+          <span class="chk-label">바베큐 가능<small>홈화면에 바베큐 선택 표시</small></span>
+        </div>
+      </div>
+      <div class="set-row">
+        <label>바베큐 요금</label>
+        <div class="p-inp-w"><input type="tel" id="cfg_bbq_price" placeholder="예시: 30,000" oninput="fmtP(this)"><span>원</span></div>
+      </div>
+      <div class="set-row">
+        <label>결제 방식</label>
+        <select id="cfg_bbq_billing" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--ink);outline:none;">
+          <option value="included">총요금에 포함</option>
+          <option value="separate">따로 결제</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 특별 기간 -->
+    <div class="set-section">
+      <div class="set-title">📅 특별 기간 (날짜 공통 · 요금은 객실별)</div>
+      <div class="period-list" id="periodList"></div>
+      <div id="periodFormWrap" style="padding:0 14px 14px;display:none;">
+        <div class="period-form">
+          <h4>＋ 특별 기간 추가</h4>
+          <div class="pf-grid">
+            <div class="pf-item"><label>구분</label>
+              <select id="pf_type">
+                <option value="peak">🔴 성수기</option>
+                <option value="semi">🟠 준성수기</option>
+                <option value="special">🟣 특별기간</option>
+                <option value="discount">🔵 할인기간</option>
+              </select>
+            </div>
+            <div class="pf-item"><label>기간 이름 (선택)</label><input type="text" id="pf_label" placeholder="예시: 여름 성수기"></div>
+            <div class="pf-item"><label>시작일</label><input type="date" id="pf_start"></div>
+            <div class="pf-item"><label>종료일</label><input type="date" id="pf_end"></div>
+          </div>
+          <div class="pf-actions">
+            <button class="btn btn-save2" onclick="savePeriod()" style="flex:1;padding:10px;">추가하기</button>
+            <button class="btn btn-muted" onclick="closePeriodForm()">취소</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:0 14px 14px;">
+        <button class="btn-add-period" onclick="openPeriodForm()">＋ 특별 기간 추가</button>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="saveSettings()">💾 설정 저장</button>
+    <button class="btn btn-del" onclick="resetAllData()" style="width:100%;padding:13px;margin-top:10px;font-size:14px;border-radius:14px;">🗑️ 데이터 초기화</button>
+
+  </div>
+</div>
+
+<!-- 템플릿 추가 모달 -->
+<div class="modal-ov" id="tplModal">
+  <div class="modal">
+    <h3>＋ 새 템플릿 추가</h3>
+    <label>템플릿 이름</label>
+    <input type="text" id="tplTitle" placeholder="예) 단체 예약 안내">
+    <label>내용</label>
+    <textarea id="tplBody" placeholder="{이름}님, 안녕하세요 😊&#10;&#10;..."></textarea>
+    <div id="tplVarChips"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="saveTpl()" style="flex:1;margin-top:0;padding:11px;">저장하기</button>
+      <button class="modal-cancel" onclick="closeTpl()">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- 하단 내비 -->
+
+<div style="text-align:center;padding:18px 0 80px;font-size:10px;color:var(--ink-light);opacity:.6;">
+  © 2026 StayMsg. All rights reserved.<br>무단 복제 및 배포를 금지합니다.
+</div>
+
+<!-- 객실 설정 모달 -->
+<div class="room-modal-ov" id="roomModalOv" onclick="closeRoomModal()"></div>
+<div class="room-modal" id="roomModal">
+  <div class="room-modal-head">
+    <h2 id="roomModalTitle">🛏️ 객실 설정</h2>
+    <button class="room-modal-close" onclick="closeRoomModal()">✕</button>
+  </div>
+  <div style="padding:16px;">
+    <input type="hidden" id="rm_idx" value="-1">
+    <div class="set-section">
+      <div class="set-title">객실 이름</div>
+      <div class="set-row"><label>이름</label><input type="text" id="rm_name" placeholder="예시: 본채, 별채, 201호"></div>
+    </div>
+    <div class="set-section">
+      <div class="set-title">👥 인원 설정</div>
+      <div class="set-row">
+        <label>기준 인원 / 최대 인원</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="tel" id="rm_base_guests" placeholder="예: 2" style="width:60px;" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <span style="font-size:13px;color:var(--ink-light);">명 기준 /</span>
+          <input type="tel" id="rm_max_guests" placeholder="예: 4" style="width:60px;" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <span style="font-size:13px;color:var(--ink-light);">명 최대</span>
+        </div>
+      </div>
+    </div>
+    <div class="set-section">
+      <div class="set-title">💰 기본 요금 (1박 기준)</div>
+      <table class="ptable">
+        <thead><tr><th>구분</th><th>요금</th></tr></thead>
+        <tbody>
+          <tr><td class="p-lbl"><span class="p-dot" style="background:#5B8DB8"></span>주중 (월~목)</td><td><div class="p-inp-w"><input type="tel" id="rm_pw" placeholder="예시: 80,000" oninput="fmtP(this)"><span>원</span></div></td></tr>
+          <tr><td class="p-lbl"><span class="p-dot" style="background:#4A6741"></span>주말 (금·토)</td><td><div class="p-inp-w"><input type="tel" id="rm_pwe" placeholder="예시: 100,000" oninput="fmtP(this)"><span>원</span></div></td></tr>
+          <tr><td class="p-lbl"><span class="p-dot" style="background:#B8734A"></span>공휴일</td><td><div class="p-inp-w"><input type="tel" id="rm_ph" placeholder="예시: 100,000" oninput="fmtP(this)"><span>원</span></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="set-section">
+      <div class="set-title">🎁 연박 할인</div>
+      <div class="set-row">
+        <label>최소 박수</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="tel" id="rm_disc_nights" value="2" style="width:70px;" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <span style="font-size:13px;color:var(--ink-light);">박 이상부터 적용</span>
+        </div>
+      </div>
+      <div class="set-row">
+        <div class="chk-item" id="rm_chk_disc_from2" onclick="document.getElementById('rm_chk_disc_from2').classList.toggle('on')">
+          <div class="chk-box"></div>
+          <span class="chk-label">2박째부터 할인<small>첫째 박은 정가, 2박째부터 할인 적용</small></span>
+        </div>
+      </div>
+      <div class="set-row">
+        <label>할인 방식</label>
+        <select id="rm_disc_type" onchange="updateRmDiscUI()">
+          <option value="pct">% 할인</option>
+          <option value="amt">금액 할인 (박당)</option>
+        </select>
+      </div>
+      <div class="set-row">
+        <label id="rm_disc_val_label">할인율</label>
+        <div class="p-inp-w">
+          <input type="tel" id="rm_disc_val" placeholder="예시: 10" oninput="fmtRmDiscVal(this)">
+          <span id="rm_disc_unit">%</span>
+        </div>
+      </div>
+    </div>
+    <div class="set-section" id="rm_special_price_section" style="display:none;">
+      <div class="set-title">📅 특별 기간 요금 (이 객실)</div>
+      <div id="rm_special_prices" style="padding:10px 14px 14px;"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn-primary" onclick="saveRoomModal()" style="flex:1;margin-top:0;">💾 저장</button>
+      <button class="btn btn-del" id="rmDelBtn" onclick="deleteRoomFromModal()" style="padding:13px 16px;">삭제</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =============================================
+   DATA
+============================================= */
+const STAGES=[
+  {id:'inquiry',icon:'💬',label:'문의',color:'#5B8DB8',desc:'처음 문의 시 보내는 안내 문자예요.',
+   templates:[
+    {title:'기본 민박 소개',body:`안녕하세요, {이름}님! 😊\n{숙소}입니다.\n\n문의 주셔서 감사해요 🙏\n\n📍 위치: {주소}\n🏡 객실: 한옥 스타일 독채 (최대 {인원})\n💰 요금: 주중 {주중요금} / 주말 {주말요금}\n🅿️ 주차 가능\n\n궁금하신 점 편하게 물어보세요!`},
+    {title:'가격·예약 안내',body:`{이름}님, 반갑습니다 🌿\n\n【 예약 안내 】\n• 입실: 오후 3시 이후\n• 퇴실: 오전 11시까지\n• 예약금: 숙박비의 50% 선입금\n• 계좌: {계좌}\n\n날짜와 인원 알려주시면 바로 확인해 드릴게요 😊`}
+   ]},
+  {id:'prebook',icon:'📋',label:'예약전',color:'#7A5C3A',desc:'날짜 확인 및 예약금 안내 문자예요.',
+   templates:[
+    {title:'날짜 확인 및 예약금 요청',body:`{이름}님, 좋은 소식이에요! 😊\n\n{입실} ~ {퇴실} ({인원}) 예약 가능합니다 ✅\n\n【 예약금 입금 안내 】\n총 금액: {금액}\n예약금: {금액}의 50%\n계좌: {계좌}\n\n입금 확인 후 예약 확정 문자 드릴게요 🙏`},
+    {title:'날짜 불가 안내',body:`{이름}님, 안녕하세요 😔\n\n죄송하게도 {입실} ~ {퇴실}은 이미 예약된 날짜예요.\n\n다른 날짜로 원하신다면 말씀해 주세요.\n좋은 날에 꼭 뵙고 싶습니다 🍃`}
+   ]},
+  {id:'booked',icon:'✅',label:'예약확정',color:'#4A6741',desc:'예약금 입금 확인 후 보내는 확정 문자예요.',
+   templates:[
+    {title:'예약 확정 안내',body:`{이름}님, 예약이 확정됐어요 🎉\n\n【 예약 내역 】\n📅 입실: {입실} 오후 3시 이후\n📅 퇴실: {퇴실} 오전 11시까지\n👥 인원: {인원}{아동}{강아지}\n💰 잔금: {금액} (입실 당일)\n\n좋은 시간 되실 거예요 🌿`},
+    {title:'예약 확정 + 취소 정책',body:`{이름}님, 예약 완료됐습니다 ✅\n\n입실 {입실} / 퇴실 {퇴실}\n인원 {인원} | 총 금액 {금액}\n{아동}{강아지}\n【 취소 정책 】\n• 7일 전: 전액 환불\n• 3~6일 전: 50% 환불\n• 2일 이내: 환불 불가\n\n문의: {연락처} 😊`}
+   ]},
+  {id:'precheckin',icon:'🗺️',label:'입실전',color:'#9B6B4A',desc:'입실 전날 또는 당일 보내는 안내 문자예요.',
+   templates:[
+    {title:'입실 전날 안내',body:`{이름}님, 내일 뵙겠습니다 😊🌿\n\n📍 주소: {주소}\n🚗 네이버지도 검색: {숙소}\n🅿️ 마당 주차 가능\n{아동}👶 아이 안전 위해 마당 계단 주의해 주세요!\n{강아지}🐶 강아지는 마당에서만 (목줄 필수)\n\n궁금한 점 있으시면 편하게 문자 주세요! 🏡`},
+    {title:'당일 입실 안내',body:`{이름}님, 오늘 오시는 날이네요 🎊\n\n입실: 오후 3시 이후\n잔금: {금액} (현장 수령)\n\n【 도착하시면 】\n대문 비밀번호: {비번}\n열쇠는 현관 안쪽에 있어요.\n{아동}👶 아기 침대 필요하시면 미리 말씀해 주세요!\n{강아지}🐶 강아지 배변 패드는 현관 앞에 있어요.\n\n산청의 맑은 공기 환영합니다 🌄`}
+   ]},
+  {id:'checkedin',icon:'🏡',label:'입실후',color:'#6B5B8B',desc:'체크인 후 편의시설 안내 문자예요.',
+   templates:[
+    {title:'체크인 완료 + 이용 안내',body:`{이름}님, 잘 도착하셨나요? 😊\n\n【 이용 안내 】\n🌡 에어컨·난방: 리모컨 사용\n🔥 바베큐: 마당에서 가능\n🧺 세탁기: 세탁실 이용 가능\n📶 와이파이: {와이파이}\n🚭 실내 금연\n{아동}👶 계단·마당 턱 조심해 주세요!\n{강아지}🐶 실내 가능, 소파 위는 자제 부탁드려요.\n\n산청에서 좋은 추억 만드세요 🏞️`},
+    {title:'주변 관광·맛집 안내',body:`{이름}님 안녕하세요 😊\n\n【 주변 추천 】\n🍽 식사: ○○식당 (차로 5분)\n🛒 마트: ○○마트 (도보 10분)\n🌊 관광: 황매산, 대원사 계곡\n\n불편한 점 있으시면 바로 연락 주세요!`}
+   ]},
+  {id:'checkout',icon:'🙏',label:'퇴실',color:'#B8734A',desc:'퇴실 후 감사 인사 문자예요.',
+   templates:[
+    {title:'퇴실 감사 인사',body:`{이름}님, 이용해 주셔서 감사해요 🙏🌿\n\n즐거운 시간 되셨으면 좋겠어요.\n다음에 또 산청 오시면 꼭 들러주세요 😊\n\n편안하게 잘 돌아가세요 🚗\n고맙습니다 ❤️`},
+    {title:'감사 + 후기 요청',body:`{이름}님, 머물다 가셔서 감사합니다 🙏\n\n네이버지도에 후기 남겨주시면 큰 힘이 돼요 ⭐\n(링크)\n\n다음에 오실 때는 단골 할인 드릴게요! 😊`},
+    {title:'퇴실 전날 알림',body:`{이름}님, 내일이 퇴실 날이네요 😊\n\n퇴실 시간: 내일 오전 11시\n\n【 퇴실 시 부탁드려요 】\n• 쓰레기 봉투에 담아 문 앞 배출\n• 열쇠 현관 안쪽에 걸어두기\n• 가스 밸브 잠금 확인\n\n함께해서 행복했어요 🌿`}
+   ]}
+];
+
+/* =============================================
+   STORAGE KEYS
+============================================= */
+const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+document.body.classList.add(isMobile ? 'is-mobile' : 'is-desktop');
+
+const SK_TPL = 'staymsg_tpl_v2';
+const SK_SET = 'staymsg_set_v2';
+const SK_PER = 'staymsg_periods_v1';
+const SK_ROOMS = 'staymsg_rooms_v1';
+const SK_GUESTS = 'staymsg_guests_v1';
+
+/* =============================================
+   STATE
+============================================= */
+let curStage=0, editState={}, customs={};
+let guests=[];
+let settings={name:'',addr:'',account:'',wifi:'',door:'',door_use_phone:false,
+  extra_pp:'',child_fee_on:false,child_pp:'',
+  dog_allow:false,dog_max:'',dog_pp:'',dog_fee_type:'per_night',
+  bbq_allow:false,bbq_price:'',bbq_billing:'included',default_room:0};
+let rooms=[], currentRoomIdx=0;
+let childCount=0, dogCount=0;
+
+function getRoom(){
+  return rooms[currentRoomIdx]||rooms[0]||{pw:'',pwe:'',ph:'',disc_nights:'2',disc_type:'pct',disc_val:'',disc_from_2nd:false,specialPrices:{}};
+}
+let periods=[]; // [{id,type,label,start,end,price}]
+
+/* =============================================
+   PERIOD TYPE META
+============================================= */
+const PT={
+  peak:   {label:'성수기',   color:'#C04040', bg:'#FFF0F0'},
+  semi:   {label:'준성수기', color:'#B8734A', bg:'#FFF6EE'},
+  special:{label:'특별기간', color:'#6B5B8B', bg:'#F4F0FF'},
+  discount:{label:'할인기간',color:'#4A6741', bg:'#F0F8EE'},
+};
+
+/* =============================================
+   STORAGE
+============================================= */
+function loadAll(){
+  try{
+    const tr=localStorage.getItem(SK_TPL);
+    if(tr){const d=JSON.parse(tr);
+      if(d.stageBodies) STAGES.forEach(s=>{const b=d.stageBodies[s.id];if(b)s.templates.forEach((t,i)=>{if(b[i]!==undefined)t.body=b[i];});});
+      if(d.customs) customs=d.customs;
+    }
+  }catch(e){}
+  try{const sr=localStorage.getItem(SK_SET);if(sr)settings={...settings,...JSON.parse(sr)};}catch(e){}
+  try{const pr=localStorage.getItem(SK_PER);if(pr)periods=JSON.parse(pr);}catch(e){}
+  try{const gr=localStorage.getItem(SK_GUESTS);if(gr)guests=JSON.parse(gr);}catch(e){}
+  migrateGuests();
+  loadRooms();
+}
+function loadRooms(){
+  try{const r=localStorage.getItem(SK_ROOMS);if(r)rooms=JSON.parse(r);}catch(e){}
+  if(!rooms.length){
+    rooms=[{id:'room_default',name:settings.name||'객실 1',
+      pw:settings.pw||'',pwe:settings.pwe||'',ph:settings.ph||'',
+      disc_nights:settings.disc_nights||'2',disc_type:settings.disc_type||'pct',
+      disc_val:settings.disc_val||'',disc_from_2nd:settings.disc_from_2nd||false,
+      specialPrices:{}
+    }];
+    saveRoomsStorage();
+  }
+  // 마이그레이션: 구버전 room에 disc/specialPrices 없으면 추가
+  rooms.forEach(r=>{
+    if(r.disc_nights===undefined)r.disc_nights='2';
+    if(r.disc_type===undefined)r.disc_type='pct';
+    if(r.disc_val===undefined)r.disc_val='';
+    if(r.disc_from_2nd===undefined)r.disc_from_2nd=false;
+    if(!r.specialPrices)r.specialPrices={};
+    if(r.base_guests===undefined)r.base_guests=settings.base_guests||'';
+    if(r.max_guests===undefined)r.max_guests=settings.max_guests||'';
+  });
+  currentRoomIdx=Math.min(settings.default_room||0,rooms.length-1);
+}
+function saveRoomsStorage(){localStorage.setItem(SK_ROOMS,JSON.stringify(rooms));}
+function saveTplStorage(){
+  const d={stageBodies:{},customs};
+  STAGES.forEach(s=>{d.stageBodies[s.id]=s.templates.map(t=>t.body);});
+  localStorage.setItem(SK_TPL,JSON.stringify(d));
+}
+function saveSettingsStorage(){localStorage.setItem(SK_SET,JSON.stringify(settings));}
+function savePeriodsStorage(){localStorage.setItem(SK_PER,JSON.stringify(periods));}
+
+/* =============================================
+   PAGE NAV
+============================================= */
+function goPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.bnav-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('bnav-'+p).classList.add('active');
+  const tabs=document.getElementById('stageTabs');
+  tabs.style.display=(p==='msg')?'flex':'none';
+  if(p==='msg') renderStage();
+  if(p==='calc'){syncCalcDates();calcPrice();}
+  if(p==='set'){applySettingsToUI();renderPeriods();}
+}
+
+/* =============================================
+   FORMATTERS
+============================================= */
+function fmtPhone(el){
+  let v=el.value.replace(/\D/g,'').slice(0,11),r='';
+  if(v.length<=3)r=v;
+  else if(v.length<=7)r=v.slice(0,3)+'-'+v.slice(3);
+  else r=v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7);
+  el.value=r;
+  updateDoorHint();renderAll();
+}
+function fmtPrice(el){
+  let v=el.value.replace(/[^0-9]/g,'');
+  el.value=v?Number(v).toLocaleString('ko-KR')+'원':'';
+  renderAll();
+}
+function fmtP(el){
+  let v=el.value.replace(/[^0-9]/g,'');
+  el.value=v?Number(v).toLocaleString('ko-KR'):'';
+}
+function fmtDate(val){
+  if(!val)return null;
+  const d=new Date(val+'T00:00:00');
+  if(isNaN(d))return val;
+  return `${d.getMonth()+1}월 ${d.getDate()}일`;
+}
+function parseNum(s){return parseInt((s||'').replace(/[^0-9]/g,''),10)||0;}
+
+/* =============================================
+   DATE CHANGE → 자동 요금 계산
+============================================= */
+const DAYS=['일','월','화','수','목','금','토'];
+function getDayLabel(dateStr){
+  if(!dateStr)return'';
+  const dow=new Date(dateStr+'T00:00:00').getDay();
+  const isWe=dow===5||dow===6;
+  const day=`<span style="color:var(--ink-light)">(${DAYS[dow]}요일)</span>`;
+  const badge=isWe?` <span style="color:#C05A1F;font-weight:600">주말</span>`:'';
+  return day+badge;
+}
+function updateDayLabels(){
+  _updateDateDisplay();
+}
+function onDateChange(){
+  const ci=document.getElementById('v_checkin').value;
+  const co=document.getElementById('v_checkout').value;
+  const coEl=document.getElementById('v_checkout');
+  if(ci){
+    // 퇴실 최소날짜 = 입실 다음날
+    const next=new Date(ci+'T00:00:00');
+    next.setDate(next.getDate()+1);
+    const minCo=next.toISOString().slice(0,10);
+    coEl.min=minCo;
+    // 퇴실이 입실보다 같거나 이전이면 초기화
+    if(co&&co<=ci){coEl.value='';coEl.focus();}
+    // 퇴실 미입력이면 달력이 입실 근처에서 열리도록 min 이용
+  }
+  updateDayLabels();
+  renderAll();
+  autoFillPrice();
+}
+
+function autoFillPrice(){
+  const ci=document.getElementById('v_checkin').value;
+  const co=document.getElementById('v_checkout').value;
+  if(!ci||!co)return;
+  const guests=document.getElementById('v_guests').value;
+  const bbq=document.getElementById('chk_bbq')?.classList.contains('on')||false;
+  const res=calcNights(ci,co,guests,childCount,dogCount,bbq);
+  if(!res||res.total===0)return;
+  // 금액 자동 채움
+  const priceEl=document.getElementById('v_price');
+  priceEl.value=res.finalTotal.toLocaleString('ko-KR')+'원';
+  // 결과 패널 표시
+  const panel=document.getElementById('priceResult');
+  panel.style.display='block';
+  panel.innerHTML=buildBreakdownHtml(res,true);
+  renderAll();
+}
+
+/* =============================================
+   요금 계산 엔진
+============================================= */
+function getDatesBetween(startStr,endStr){
+  // 입실~퇴실 전날까지 (체크아웃 날은 숙박 아님)
+  const dates=[];
+  const s=new Date(startStr+'T00:00:00');
+  const e=new Date(endStr+'T00:00:00');
+  const cur=new Date(s);
+  while(cur<e){
+    const y=cur.getFullYear(),m=String(cur.getMonth()+1).padStart(2,'0'),d=String(cur.getDate()).padStart(2,'0');
+    dates.push(`${y}-${m}-${d}`);
+    cur.setDate(cur.getDate()+1);
+  }
+  return dates;
+}
+
+function getDayType(dateStr){
+  // 특별 기간 우선 체크 (우선순위: peak > semi > special > discount)
+  const priority=['peak','semi','special','discount'];
+  for(const pt of priority){
+    const found=periods.find(p=>p.type===pt&&dateStr>=p.start&&dateStr<=p.end);
+    if(found){
+      const sp=getRoom().specialPrices?.[found.id]||{};
+      const dow=new Date(dateStr+'T00:00:00').getDay();
+      const isWe=dow===5||dow===6;
+      const pwe=typeof sp==='object'?sp.pwe:null;
+      const pw=typeof sp==='object'?sp.pw:(typeof sp==='string'?sp:'');
+      const price=parseNum(isWe&&pwe?pwe:pw);
+      return {type:found.type,price,label:found.label||PT[found.type].label};
+    }
+  }
+  // 공휴일 체크 (간단 버전 - 설정된 공휴일)
+  // 기본 주중/주말
+  const dow=new Date(dateStr+'T00:00:00').getDay(); // 0=일,6=토
+  if(dow===5||dow===6){
+    const p=parseNum(getRoom().pwe);
+    return {type:'weekend',price:p,label:'주말'};
+  }else{
+    const p=parseNum(getRoom().pw);
+    return {type:'weekday',price:p,label:'주중'};
+  }
+}
+
+function calcNights(startStr,endStr,guestStr,childCnt,dogCnt,bbq){
+  const dates=getDatesBetween(startStr,endStr);
+  if(!dates.length)return null;
+  // 날짜별 요금
+  const breakdown=[];
+  let total=0;
+  // 연속된 같은 타입 묶기
+  let cur=null;
+  dates.forEach(d=>{
+    const dt=getDayType(d);
+    if(cur&&cur.type===dt.type&&cur.price===dt.price&&cur.label===dt.label){
+      cur.nights++;cur.subtotal+=dt.price;
+    }else{
+      if(cur)breakdown.push(cur);
+      cur={type:dt.type,label:dt.label,price:dt.price,nights:1,subtotal:dt.price};
+    }
+    total+=dt.price;
+  });
+  if(cur)breakdown.push(cur);
+  // 연박 할인 (객실별)
+  let discount=0;
+  const rm=getRoom();
+  const discNights=parseInt(rm.disc_nights)||0;
+  const discVal=parseNum(rm.disc_val);
+  if(discNights>0&&discVal>0&&dates.length>=discNights){
+    if(rm.disc_from_2nd){
+      const baseTotal=total-getDayType(dates[0]).price;
+      if(rm.disc_type==='pct') discount=Math.round(baseTotal*discVal/100);
+      else discount=discVal*Math.max(0,dates.length-1);
+    }else{
+      if(rm.disc_type==='pct') discount=Math.round(total*discVal/100);
+      else discount=discVal*dates.length;
+    }
+  }
+  // 총인원(아동 포함) → 성인 = 총인원 - 아동수 (공통 설정)
+  const baseGuests=parseInt(getRoom().base_guests)||0;
+  const totalGuests=parseInt((guestStr||'').replace(/[^0-9]/g,''))||0;
+  const childCnt2=childCnt||0;
+  const adultGuests=totalGuests-childCnt2;
+  // 추가 성인 요금
+  let extraGuestCost=0;
+  const extraPP=parseNum(settings.extra_pp);
+  if(baseGuests>0&&extraPP>0&&adultGuests>baseGuests){
+    extraGuestCost=(adultGuests-baseGuests)*extraPP*dates.length;
+  }
+  // 미취학아동 요금
+  let childCost=0;
+  const childPP=parseNum(settings.child_pp);
+  const showChild=settings.child_fee_on&&childCnt2>0&&baseGuests>0&&totalGuests>baseGuests;
+  if(showChild&&childPP>0){
+    childCost=childCnt2*childPP*dates.length;
+  }
+  // 강아지 요금
+  let dogCost=0;
+  const dogPP=parseNum(settings.dog_pp);
+  if(settings.dog_allow&&(dogCnt||0)>0&&dogPP>0){
+    dogCost=settings.dog_fee_type==='flat'
+      ?(dogCnt||0)*dogPP
+      :(dogCnt||0)*dogPP*dates.length;
+  }
+  // 바베큐 요금
+  let bbqCost=0, bbqSeparate=false;
+  const bbqPrice=parseNum(settings.bbq_price);
+  if(settings.bbq_allow&&bbq&&bbqPrice>0){
+    bbqSeparate=settings.bbq_billing==='separate';
+    if(!bbqSeparate) bbqCost=bbqPrice;
+  }
+  const finalTotal=(total-discount)+extraGuestCost+childCost+dogCost+bbqCost;
+  return{dates,breakdown,total,discount,extraGuestCost,childCost,showChild,dogCost,bbqCost,bbqSeparate,bbq,nights:dates.length,finalTotal};
+}
+
+function buildBreakdownHtml(res,compact){
+  if(!res)return'';
+  const typeColor={weekday:'#5B8DB8',weekend:'#C05A1F',peak:'#C04040',semi:'#B8734A',special:'#6B5B8B',discount:'#4A6741'};
+  const R='display:grid;grid-template-columns:3em 1fr auto;gap:0 6px;padding:6px 0;border-bottom:1px dashed var(--border);align-items:center;font-size:12px;';
+  let rows=res.breakdown.map(b=>{
+    const c=typeColor[b.type]||'#888';
+    const nights=b.nights+'박'+(b.nights>1&&b.price?' · '+b.price.toLocaleString('ko-KR')+'원':'');
+    return `<div style="${R}">
+      <span style="color:${c};font-weight:600">${b.label}</span>
+      <span style="color:var(--ink-light);font-size:11px">${nights}</span>
+      <span style="text-align:right;font-weight:500">${b.subtotal?b.subtotal.toLocaleString('ko-KR')+'원':'—'}</span>
+    </div>`;
+  }).join('');
+  const discRow=res.discount>0?`<div style="${R}">
+    <span style="color:#C05A1F;font-weight:600">할인</span>
+    <span style="color:var(--ink-light);font-size:11px">연박 할인</span>
+    <span style="color:#C05A1F;font-weight:500;text-align:right">-${res.discount.toLocaleString('ko-KR')}원</span>
+  </div>`:'';
+  const extraRow=res.extraGuestCost>0?(()=>{
+    const perNight=(res.extraGuestCost/res.nights).toLocaleString('ko-KR');
+    return `<div style="${R}">
+      <span style="color:#6B5B8B;font-weight:600">추가</span>
+      <span style="color:var(--ink-light);font-size:11px">${perNight}원 × ${res.nights}박</span>
+      <span style="color:#6B5B8B;font-weight:500;text-align:right">+${res.extraGuestCost.toLocaleString('ko-KR')}원</span>
+    </div>`;
+  })():'';
+  const childRow=res.showChild?(()=>{
+    const childPP=parseNum(settings.child_pp);
+    const perNight=childPP.toLocaleString('ko-KR');
+    const total=res.childCost.toLocaleString('ko-KR');
+    return `<div style="${R}">
+      <span style="color:#4A90A4;font-weight:600">아동</span>
+      <span style="color:var(--ink-light);font-size:11px">${perNight}원 × ${res.nights}박</span>
+      <span style="color:#4A90A4;font-weight:500;text-align:right">+${total}원</span>
+    </div>`;
+  })():'';
+  const dogRow=res.dogCost>0?(()=>{
+    const isFlat=settings.dog_fee_type==='flat';
+    const detail=isFlat?`${(res.dogCost).toLocaleString('ko-KR')}원 (전체 1회)`:`${(res.dogCost/res.nights).toLocaleString('ko-KR')}원 × ${res.nights}박`;
+    return `<div style="${R}">
+      <span style="color:#8B6914;font-weight:600">🐶</span>
+      <span style="color:var(--ink-light);font-size:11px">${detail}</span>
+      <span style="color:#8B6914;font-weight:500;text-align:right">+${res.dogCost.toLocaleString('ko-KR')}원</span>
+    </div>`;
+  })():'';
+  const bbqRow=res.bbq&&settings.bbq_allow&&parseNum(settings.bbq_price)>0?(()=>{
+    const p=parseNum(settings.bbq_price).toLocaleString('ko-KR');
+    const isSep=res.bbqSeparate;
+    return `<div style="${R}">
+      <span style="color:#C04A00;font-weight:600">🔥</span>
+      <span style="color:var(--ink-light);font-size:11px">바베큐${isSep?' (따로 결제)':''}</span>
+      <span style="color:${isSep?'var(--ink-light)':'#C04A00'};font-weight:500;text-align:right;${isSep?'text-decoration:line-through;opacity:0.6':''}">+${p}원</span>
+    </div>`;
+  })():'';
+  const finalStr=res.finalTotal?res.finalTotal.toLocaleString('ko-KR')+'원':'요금 미설정';
+  const TR='display:grid;grid-template-columns:3em 1fr auto;gap:0 6px;padding:8px 0 2px;align-items:baseline;border-top:1.5px solid var(--border);margin-top:2px;';
+  const totalRow=`<div style="${TR}">
+    <span style="color:var(--ink);font-weight:700;font-size:13px">합계</span>
+    <span style="color:var(--ink-light);font-size:11px">${res.nights}박</span>
+    <span style="color:var(--green);font-weight:700;font-size:15px;text-align:right">${finalStr}</span>
+  </div>`;
+  if(compact){
+    return `<div style="font-size:11px;color:var(--green);font-weight:500;margin-bottom:4px">${res.nights}박 자동 계산됐어요</div>${rows}${discRow}${extraRow}${childRow}${dogRow}${bbqRow}${totalRow}`;
+  }
+  return rows+discRow+extraRow+childRow+dogRow+bbqRow+totalRow;
+}
+
+/* 요금계산기 페이지 */
+function syncCalcDates(){
+  const ci=document.getElementById('v_checkin').value;
+  const co=document.getElementById('v_checkout').value;
+  if(ci)document.getElementById('c_checkin').value=ci;
+  if(co)document.getElementById('c_checkout').value=co;
+}
+function calcPrice(){
+  const ci=document.getElementById('c_checkin').value;
+  const co=document.getElementById('c_checkout').value;
+  const el=document.getElementById('calcResult');
+  if(!ci||!co){el.innerHTML='<p style="font-size:12px;color:var(--ink-light);text-align:center;padding:20px 0;">날짜를 선택하면 요금이 자동 계산돼요 🌿</p>';return;}
+  const res=calcNights(ci,co);
+  if(!res||!res.nights){el.innerHTML='<p style="font-size:12px;color:#C04040;text-align:center;padding:12px;">퇴실일이 입실일보다 빠릅니다</p>';return;}
+  el.innerHTML=buildBreakdownHtml(res,false);
+}
+
+/* =============================================
+   VARIABLES
+============================================= */
+function getDoorCode(){
+  if(settings.door_use_phone){
+    const ph=(document.getElementById('v_phone')?.value||'').replace(/\D/g,'');
+    const l4=ph.slice(-4);
+    return l4?l4+'#':(settings.door||'{비번}');
+  }
+  return settings.door||'{비번}';
+}
+function getVars(){
+  const ci=fmtDate(document.getElementById('v_checkin').value);
+  const co=fmtDate(document.getElementById('v_checkout').value);
+  return{
+    '{이름}':document.getElementById('v_name').value||'{이름}',
+    '{연락처}':document.getElementById('v_phone').value||'{연락처}',
+    '{입실}':ci||'{입실}','{퇴실}':co||'{퇴실}',
+    '{인원}':document.getElementById('v_guests').value||'{인원}',
+    '{금액}':document.getElementById('v_price').value||'{금액}',
+    '{아동}':childCount>0?`\n👶 미취학아동 ${childCount}명 동반\n`:'',
+    '{강아지}':dogCount>0?`\n🐶 강아지 ${dogCount}마리 동반\n`:'',
+    '{숙소}':settings.name||'{숙소}','{주소}':settings.addr||'{주소}',
+    '{계좌}':settings.account||'{계좌}','{와이파이}':settings.wifi||'{와이파이}',
+    '{비번}':getDoorCode(),
+    '{주중요금}':getRoom().pw?getRoom().pw+'원':'{주중요금}',
+    '{주말요금}':getRoom().pwe?getRoom().pwe+'원':'{주말요금}',
+    '{성수기요금}':(()=>{const pk=periods.find(p=>p.type==='peak');const sp=pk&&getRoom().specialPrices?.[pk.id];if(!sp)return'{성수기요금}';const price=typeof sp==='object'?(sp.pw||sp.pwe):sp;return price?parseNum(price).toLocaleString('ko-KR')+'원':'{성수기요금}';})(),
+  };
+}
+function applyVars(text){
+  const vars=getVars();let r=text;
+  for(const[k,v]of Object.entries(vars))r=r.replaceAll(k,v);
+  return r;
+}
+
+/* =============================================
+   RENDER MESSAGES
+============================================= */
+function buildTabs(){
+  document.getElementById('stageTabs').innerHTML=STAGES.map((s,i)=>
+    `<button class="stab ${i===0?'active':''}" onclick="switchStage(${i})"><span class="ti">${s.icon}</span>${s.label}</button>`
+  ).join('');
+}
+function switchStage(i){
+  curStage=i;
+  document.querySelectorAll('.stab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  renderStage();
+}
+function renderAll(){renderStage();}
+function allTpls(s){return[...s.templates,...(customs[s.id]||[])];}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function insertVar(v,taId){
+  const ta=document.getElementById(taId);if(!ta)return;
+  ta.focus();
+  const s=ta.selectionStart,e=ta.selectionEnd,val=ta.value;
+  ta.value=val.slice(0,s)+v+val.slice(e);
+  ta.selectionStart=ta.selectionEnd=s+v.length;
+  ta.dispatchEvent(new Event('input'));
+}
+const VAR_LIST=['{이름}','{입실}','{퇴실}','{인원}','{금액}','{연락처}','{아동}','{강아지}','{숙소}','{주소}','{계좌}','{와이파이}','{비번}','{주중요금}','{주말요금}','{성수기요금}'];
+const EMOJI_LIST=['😊','😄','😁','🙏','👍','💝','✨','🌟','⭐','🎉','🎊','🏡','🌿','🌸','🌺','🍃','🌊','🏔️','🌄','🌅','🌙','☀️','🛏️','🚗','🧳','📍','🔑','🚪','🍳','☕','🍷','🔥','🎋','📱','📋','💌','📞','🐶','👶','💰','✅','❗','💬','🤗','😍','🥰','👏','🙌','🫶'];
+function toggleEmojiPanel(id){document.getElementById(id).classList.toggle('open');}
+function varChipsHtml(taId){
+  const pid='ep-'+taId.replace(/[^a-zA-Z0-9]/g,'-');
+  return '<div class="var-chips">'+VAR_LIST.map(v=>`<button type="button" class="var-chip" onclick="insertVar('${v}','${taId}')">${v}</button>`).join('')+'</div>'
+    +`<button type="button" class="emoji-toggle" onclick="toggleEmojiPanel('${pid}')">😊 이모티콘 ▾</button>`
+    +`<div class="emoji-panel" id="${pid}">${EMOJI_LIST.map(e=>`<button type="button" class="emoji-btn" onclick="insertVar('${e}','${taId}')">${e}</button>`).join('')}</div>`;
+}
+
+function renderStage(){
+  const s=STAGES[curStage];const tmpls=allTpls(s);const orig=s.templates.length;
+  let html=`<div class="stage-hdr"><div class="stage-dot" style="background:${s.color}"></div><h2>${s.icon} ${s.label}</h2></div><p class="stage-desc">${s.desc}</p>`;
+  tmpls.forEach((t,i)=>{
+    const key=`${s.id}-${i}`;const isEd=editState[key]!==undefined;
+    const raw=isEd?editState[key]:t.body;const rend=applyVars(raw);const isC=i>=orig;
+    html+=`<div class="card"><div class="card-h" onclick="togCard('${key}')"><span class="card-t">${esc(t.title)}</span><span class="card-tog" id="tog-${key}">▾</span></div>
+    <div class="card-b" id="body-${key}">
+      ${isEd?`<textarea class="tpl-edit" id="edit-${key}">${esc(raw)}</textarea>${varChipsHtml('edit-'+key)}`:`<div class="tpl-text">${esc(rend)}</div>`}
+      <div class="card-actions">
+        <button class="btn btn-dark" id="cp-${key}" onclick="copyTpl('${key}',${i})">📋 복사</button>
+        <button class="btn btn-green" onclick="openSms('${key}',${i})">📱 문자</button>
+        ${isEd
+          ?`<button class="btn btn-save2" onclick="saveEdit('${key}',${i})">저장</button><button class="btn btn-muted" onclick="cancelEdit('${key}')">취소</button>`
+          :`<button class="btn btn-muted" onclick="startEdit('${key}',${i})">수정</button>`}
+        ${isC?`<button class="btn btn-del" onclick="delTpl(${i})">삭제</button>`:''}
+      </div>
+    </div></div>`;
+  });
+  html+=`<button class="btn-add" onclick="openTpl()">＋ 템플릿 추가</button>`;
+  document.getElementById('stageContent').innerHTML=html;
+  const fk=`${s.id}-0`;const fb=document.getElementById(`body-${fk}`);const ft=document.getElementById(`tog-${fk}`);
+  if(fb){fb.classList.add('open');if(ft)ft.classList.add('open');}
+}
+
+function togCard(k){
+  document.getElementById(`body-${k}`).classList.toggle('open');
+  document.getElementById(`tog-${k}`).classList.toggle('open');
+}
+
+/* =============================================
+   COPY / SMS
+============================================= */
+function copyTpl(key,idx){
+  const s=STAGES[curStage];const raw=editState[key]!==undefined?editState[key]:allTpls(s)[idx].body;
+  const text=applyVars(raw);
+  const done=()=>{const b=document.getElementById(`cp-${key}`);if(b){b.textContent='✓ 복사됨';b.classList.add('copied');setTimeout(()=>{b.textContent='📋 복사';b.classList.remove('copied');},2000);}toast('복사됐어요 ✓');};
+  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(done).catch(()=>{fbCopy(text);done();});
+  else{fbCopy(text);done();}
+}
+function fbCopy(t){const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(a);}
+function openSms(key,idx){
+  const s=STAGES[curStage];const raw=editState[key]!==undefined?editState[key]:allTpls(s)[idx].body;
+  const text=applyVars(raw);const ph=document.getElementById('v_phone').value.replace(/-/g,'');
+  const done=()=>{
+    setTimeout(()=>{
+      try{
+        const enc=encodeURIComponent(text);const ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+        window.location.href=ph?(ios?`sms:${ph}&body=${enc}`:`sms:${ph}?body=${enc}`):(ios?`sms:&body=${enc}`:`sms:?body=${enc}`);
+        toast('문자앱이 열렸어요 📱');
+      }catch(e){toast('내용이 복사됐어요! 붙여넣기 하세요 📋');}
+    },200);
+  };
+  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(done).catch(()=>{fbCopy(text);done();});
+  else{fbCopy(text);done();}
+}
+
+/* =============================================
+   EDIT
+============================================= */
+function startEdit(key,idx){editState[key]=allTpls(STAGES[curStage])[idx].body;renderStage();const b=document.getElementById(`body-${key}`);if(b)b.classList.add('open');const t=document.getElementById(`tog-${key}`);if(t)t.classList.add('open');const ta=document.getElementById(`edit-${key}`);if(ta){ta.focus();ta.value=editState[key];}}
+function cancelEdit(key){delete editState[key];renderStage();}
+function saveEdit(key,idx){
+  const ta=document.getElementById(`edit-${key}`);if(!ta)return;
+  const s=STAGES[curStage];const orig=s.templates.length;const txt=ta.value;
+  if(idx<orig)s.templates[idx].body=txt;
+  else{const ci=idx-orig;(customs[s.id]=customs[s.id]||[])[ci].body=txt;}
+  delete editState[key];saveTplStorage();renderStage();
+  const b=document.getElementById(`body-${key}`);if(b)b.classList.add('open');
+  const t=document.getElementById(`tog-${key}`);if(t)t.classList.add('open');
+  toast('저장됐어요 ✓ (다음에도 유지됩니다)');
+}
+function delTpl(idx){
+  const s=STAGES[curStage];const orig=s.templates.length;
+  if(!confirm('이 템플릿을 삭제할까요?'))return;
+  (customs[s.id]=customs[s.id]||[]).splice(idx-orig,1);
+  saveTplStorage();renderStage();toast('삭제됐어요');
+}
+
+/* =============================================
+   TEMPLATE MODAL
+============================================= */
+function openTpl(){document.getElementById('tplTitle').value='';document.getElementById('tplBody').value='';document.getElementById('tplVarChips').innerHTML=varChipsHtml('tplBody');document.getElementById('tplModal').classList.add('open');setTimeout(()=>document.getElementById('tplTitle').focus(),100);}
+function closeTpl(){document.getElementById('tplModal').classList.remove('open');}
+function saveTpl(){
+  const title=document.getElementById('tplTitle').value.trim();
+  const body=document.getElementById('tplBody').value.trim();
+  if(!title){alert('이름을 입력해 주세요.');return;}if(!body){alert('내용을 입력해 주세요.');return;}
+  const s=STAGES[curStage];(customs[s.id]=customs[s.id]||[]).push({title,body});
+  saveTplStorage();closeTpl();renderStage();toast('템플릿이 추가됐어요! ✓');
+}
+document.getElementById('tplModal').addEventListener('click',function(e){if(e.target===this)closeTpl();});
+
+/* =============================================
+   CHECK
+============================================= */
+function copyPhone(){
+  const ph=document.getElementById('v_phone').value;
+  if(!ph)return;
+  const btn=document.getElementById('btn_copy_phone');
+  const copySvg='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const checkSvg='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  const done=()=>{btn.innerHTML=checkSvg;setTimeout(()=>{btn.innerHTML=copySvg;},1500);};
+  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(ph).then(done).catch(()=>{fbCopy(ph);done();});
+  else{fbCopy(ph);done();}
+}
+function toggleChk(id){document.getElementById(id).classList.toggle('on');renderAll();}
+function changeChild(d){
+  childCount=Math.max(0,childCount+d);
+  const el=document.getElementById('child_count_display');
+  if(el)el.textContent=childCount;
+  renderAll();autoFillPrice();
+}
+function changeDog(d){
+  const max=parseInt(settings.dog_max)||0;
+  if(!settings.dog_allow||!max){return;}
+  dogCount=Math.max(0,Math.min(max,dogCount+d));
+  const el=document.getElementById('dog_count_display');
+  if(el)el.textContent=dogCount;
+  renderAll();autoFillPrice();
+}
+function toggleBbq(){
+  const el=document.getElementById('chk_bbq');
+  if(!el)return;
+  el.classList.toggle('on');
+  renderAll();autoFillPrice();
+}
+function updateBbqRow(){
+  const row=document.getElementById('chk_bbq');
+  const sub=document.getElementById('bbq_row_sub');
+  if(!row)return;
+  if(settings.bbq_allow){
+    row.style.display='flex';
+    if(sub){
+      const p=parseNum(settings.bbq_price);
+      const bill=settings.bbq_billing==='separate'?'따로 결제':'총요금 포함';
+      sub.textContent=p?`${p.toLocaleString('ko-KR')}원 · ${bill}`:'';
+    }
+  }else{
+    row.style.display='none';
+    row.classList.remove('on');
+  }
+}
+function updateDogRow(){
+  const row=document.getElementById('dog_row');
+  const sub=document.getElementById('dog_row_sub');
+  if(!row)return;
+  const allowed=settings.dog_allow&&parseInt(settings.dog_max)>0;
+  row.style.opacity=allowed?'1':'0.4';
+  if(sub){
+    const max=parseInt(settings.dog_max)||0;
+    sub.textContent=allowed?`최대 ${max}마리`:'동반 불가';
+  }
+  if(!allowed){dogCount=0;const el=document.getElementById('dog_count_display');if(el)el.textContent=0;}
+}
+function updateGuestSelect(){
+  const max=parseInt(getRoom().max_guests)||10;
+  const sel=document.getElementById('v_guests');
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">선택</option>'+
+    Array.from({length:max},(_,i)=>`<option value="${i+1}명"${cur===`${i+1}명`?' selected':''}>${i+1}명</option>`).join('');
+}
+
+/* =============================================
+   GUEST BOOK
+============================================= */
+function saveGuestsStorage(){localStorage.setItem(SK_GUESTS,JSON.stringify(guests));}
+// 구버전 마이그레이션: {name,phone,checkin,...} → {name,phone,stays:[...]}
+function migrateGuests(){
+  guests=guests.map(g=>{
+    if(g.stays)return g;
+    const base={name:g.name,phone:g.phone||'',stays:[]};
+    if(g.checkin)base.stays.push({checkin:g.checkin,checkout:g.checkout||'',guests:g.guests||'',price:g.price||'',room:g.room||'',savedAt:g.savedAt||''});
+    return base;
+  });
+}
+function buildGuestHtml(matched){
+  const today=new Date().toISOString().slice(0,10);
+  return matched.map(g=>{
+    const gi=guests.indexOf(g);
+    const future=(g.stays||[]).filter(s=>s.checkin>=today).sort((a,b)=>a.checkin>b.checkin?1:-1);
+    const first=future[0];
+    const sub=first?`${first.checkin}~${first.checkout} ${first.guests||''} · ${g.phone||''}`:g.phone||'';
+    const badge=future.length>1?` ▾`:future.length===1?' 📋':'';
+    const si=first?g.stays.indexOf(first):-1;
+    const click=future.length>1?`toggleGuestSub(${gi})`:`selectGuestStay(${gi},${si})`;
+    const subHtml=future.length>1?`<div class="guest-sub" id="gsub-${gi}" style="display:none;">`+
+      future.map(s=>{const i=g.stays.indexOf(s);return`<div class="guest-sub-item" onclick="selectGuestStay(${gi},${i});event.stopPropagation()"><span>${s.checkin}~${s.checkout} ${s.guests||''}</span><span style="color:var(--ink-light)">${s.price||''}</span></div>`;}).join('')+
+      `</div>`:'';
+    return`<div class="guest-item" onclick="${click}"><span class="guest-item-name">${g.name}${badge}</span><span class="guest-item-phone">${sub}</span></div>${subHtml}`;
+  }).join('');
+}
+function onNameInput(){
+  renderAll();
+  const q=document.getElementById('v_name').value.trim();
+  const dd=document.getElementById('guestDropdown');
+  if(q.length<2){dd.classList.remove('open');return;}
+  const matched=guests.filter(g=>g.name.includes(q));
+  if(!matched.length){dd.classList.remove('open');return;}
+  dd.innerHTML=buildGuestHtml(matched);dd.classList.add('open');
+}
+function onPhoneInput(){
+  const q=document.getElementById('v_phone').value.trim();
+  const dd=document.getElementById('guestDropdown');
+  if(q.length<7){dd.classList.remove('open');return;}
+  const qd=q.replace(/-/g,'');
+  const matched=guests.filter(g=>(g.phone||'').replace(/-/g,'').startsWith(qd));
+  if(!matched.length){dd.classList.remove('open');return;}
+  dd.innerHTML=buildGuestHtml(matched);dd.classList.add('open');
+}
+function toggleGuestSub(gi){
+  const el=document.getElementById(`gsub-${gi}`);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+}
+function selectGuestStay(gi,si){
+  const g=guests[gi];if(!g)return;
+  document.getElementById('v_name').value=g.name;
+  if(g.phone)document.getElementById('v_phone').value=g.phone;
+  if(si>=0){
+    const s=g.stays[si];
+    if(s){
+      if(s.checkin)document.getElementById('v_checkin').value=s.checkin;
+      if(s.checkout)document.getElementById('v_checkout').value=s.checkout;
+      if(s.guests)document.getElementById('v_guests').value=s.guests;
+      if(s.price)document.getElementById('v_price').value=s.price;
+    }
+  }
+  document.getElementById('guestDropdown').classList.remove('open');
+  _updateDateDisplay();onDateChange();renderAll();
+}
+function selectGuest(idx){selectGuestStay(idx,-1);}
+function saveGuest(){
+  const name=document.getElementById('v_name').value.trim();
+  const phone=document.getElementById('v_phone').value.trim();
+  if(!name){alert('이름을 입력해 주세요.');return;}
+  const checkin=document.getElementById('v_checkin').value||'';
+  const checkout=document.getElementById('v_checkout').value||'';
+  const hasStayInfo=checkin&&checkout;
+  const checkSvg='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  const saveSvg='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>';
+  const flashBtn=(msg,isStay)=>{
+    const btn=document.getElementById('guestSaveBtn');
+    btn.innerHTML=checkSvg;btn.classList.add('saved');
+    setTimeout(()=>{btn.innerHTML=saveSvg;btn.classList.remove('saved');},2000);
+    document.getElementById('guestDropdown').classList.remove('open');
+    toast(msg);
+  };
+  const doSave=(isBooked)=>{
+    let gi=guests.findIndex(g=>g.name===name&&g.phone===phone);
+    if(gi<0){guests.unshift({name,phone,stays:[]});gi=0;}
+    if(isBooked&&hasStayInfo){
+      const stay={checkin,checkout,
+        guests:document.getElementById('v_guests').value||'',
+        price:document.getElementById('v_price').value||'',
+        room:getRoom().name||'',
+        savedAt:new Date().toISOString().slice(0,10),
+      };
+      const si=guests[gi].stays.findIndex(s=>s.checkin===stay.checkin);
+      if(si>=0)guests[gi].stays[si]=stay; else guests[gi].stays.push(stay);
+      saveGuestsStorage();
+      flashBtn(`${name} 님 예약 저장 (총 ${guests[gi].stays.length}번 숙박) ✓`);
+    }else{
+      saveGuestsStorage();
+      flashBtn(`${name} 님 이름·연락처가 저장됐어요 ✓`);
+    }
+  };
+  // 확인 모달 표시
+  showConfirmModal(
+    '예약 확정인가요?',
+    hasStayInfo?'예 → 숙박 정보 전체 저장\n아니요 → 이름·연락처만 저장':'입실/퇴실 날짜가 없어 이름·연락처만 저장됩니다.',
+    hasStayInfo?()=>doSave(true):null,
+    ()=>doSave(false),
+    hasStayInfo?'예약 확정':'확인',
+    hasStayInfo?'이름·연락처만 저장':null
+  );
+}
+let _cmCb={};
+function showConfirmModal(title,desc,onYes,onNo,yesLabel='예',noLabel='아니요'){
+  const old=document.getElementById('_confirmModal');if(old)old.remove();
+  _cmCb={yes:onYes,no:onNo};
+  const m=document.createElement('div');
+  m.id='_confirmModal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  m.innerHTML=`<div style="background:white;border-radius:14px;padding:22px;max-width:300px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+    <h3 style="margin:0 0 8px;font-size:15px;color:var(--ink);">${title}</h3>
+    <p style="margin:0 0 18px;font-size:12px;color:var(--ink-light);white-space:pre-line;line-height:1.6;">${desc}</p>
+    <div style="display:flex;gap:8px;">
+      ${onYes?`<button onclick="_cmDone('yes')" style="flex:1;padding:11px;background:var(--ink);color:white;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">${yesLabel}</button>`:''}
+      ${noLabel!==null?`<button onclick="_cmDone('no')" style="flex:1;padding:11px;background:var(--paper);color:var(--ink);border:1px solid var(--border);border-radius:9px;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">${noLabel||'아니요'}</button>`:''}
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+}
+function _cmDone(which){
+  const old=document.getElementById('_confirmModal');if(old)old.remove();
+  if(which==='yes'&&_cmCb.yes)_cmCb.yes();
+  else if(which==='no'&&_cmCb.no)_cmCb.no();
+  _cmCb={};
+}
+function deleteGuest(idx){
+  guests.splice(idx,1);saveGuestsStorage();
+}
+document.addEventListener('click',e=>{
+  const dd=document.getElementById('guestDropdown');
+  if(dd&&!dd.contains(e.target)&&e.target.id!=='v_name')dd.classList.remove('open');
+});
+
+/* =============================================
+   SETTINGS
+============================================= */
+function updateRmDiscUI(){
+  const type=document.getElementById('rm_disc_type')?.value||'pct';
+  const lbl=document.getElementById('rm_disc_val_label');
+  const unit=document.getElementById('rm_disc_unit');
+  if(lbl)lbl.textContent=type==='pct'?'할인율':'박당 할인 금액';
+  if(unit)unit.textContent=type==='pct'?'%':'원';
+}
+function fmtRmDiscVal(el){
+  const type=document.getElementById('rm_disc_type')?.value||'pct';
+  if(type==='amt'){
+    let v=el.value.replace(/[^0-9]/g,'');
+    el.value=v?Number(v).toLocaleString('ko-KR'):'';
+  }else{
+    el.value=el.value.replace(/[^0-9.]/g,'');
+  }
+}
+function applySettingsToUI(){
+  const f=['name','addr','account','wifi','door','extra_pp','child_pp','dog_max','dog_pp','bbq_price'];
+  f.forEach(k=>{const el=document.getElementById('cfg_'+k);if(el)el.value=settings[k]||'';});
+  const chk=document.getElementById('chk_door_phone');
+  if(chk){if(settings.door_use_phone)chk.classList.add('on');else chk.classList.remove('on');}
+  const cfc=document.getElementById('chk_child_fee');
+  if(cfc){settings.child_fee_on?cfc.classList.add('on'):cfc.classList.remove('on');}
+  const cda=document.getElementById('chk_dog_allow');
+  if(cda){settings.dog_allow?cda.classList.add('on'):cda.classList.remove('on');}
+  const dft=document.getElementById('cfg_dog_fee_type');
+  if(dft)dft.value=settings.dog_fee_type||'per_night';
+  const cba=document.getElementById('chk_bbq_allow');
+  if(cba){settings.bbq_allow?cba.classList.add('on'):cba.classList.remove('on');}
+  const bbt=document.getElementById('cfg_bbq_billing');
+  if(bbt)bbt.value=settings.bbq_billing||'included';
+  renderRoomList();
+  updateDoorHint();
+}
+/* ===== 달력 날짜 범위 선택 ===== */
+let _cal={ci:null,co:null,step:'ci',y:0,m:0};
+const _MN=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+function openDatePicker(){
+  const today=new Date();
+  _cal.y=today.getFullYear();_cal.m=today.getMonth();
+  _cal.ci=document.getElementById('v_checkin').value||null;
+  _cal.co=document.getElementById('v_checkout').value||null;
+  _cal.step=_cal.ci?'co':'ci';
+  _renderCal();
+}
+function _renderCal(){
+  const old=document.getElementById('_calModal');if(old)old.remove();
+  const {y,m,ci,co,step}=_cal;
+  const today=new Date().toISOString().slice(0,10);
+  const firstDow=new Date(y,m,1).getDay();
+  const daysInM=new Date(y,m+1,0).getDate();
+  let cells='';
+  ['일','월','화','수','목','금','토'].forEach((d,i)=>{
+    cells+=`<div class="cal-dow" style="${i===0?'color:#EF4444':i===6?'color:#3B82F6':''}">${d}</div>`;
+  });
+  for(let i=0;i<firstDow;i++)cells+=`<div></div>`;
+  for(let d=1;d<=daysInM;d++){
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow=new Date(ds+'T00:00:00').getDay();
+    const isWe=dow===5||dow===6;
+    const isSun=dow===0;
+    const dis=ds<today;
+    const isToday=ds===today;
+    const isCi=ds===ci;const isCo=ds===co;
+    const inR=ci&&co&&ds>ci&&ds<co;
+    let cls='cal-day';
+    if(dis)cls+=' cal-dis';
+    else if(isCi)cls+=' cal-sel cal-ci';
+    else if(isCo)cls+=' cal-sel cal-co';
+    else if(inR)cls+=' cal-range';
+    if(isToday&&!isCi&&!isCo)cls+=' cal-today';
+    const topLbl=isCi?'<small>입실</small>':isCo?'<small>퇴실</small>'
+      :isToday?'<small style="color:var(--accent)">오늘</small>'
+      :(!dis&&isWe)?'<small class="we-lbl">주말</small>'
+      :(!dis&&isSun)?'<small class="su-lbl">일</small>'
+      :(!dis)?'<small class="wd-lbl">주중</small>':'';
+    cells+=`<div class="${cls}" ${dis?'':'onclick="_pickDate(\''+ds+'\')"'}><span>${d}</span>${topLbl}</div>`;
+  }
+  const hint=step==='ci'?'입실 날짜를 선택하세요':'퇴실 날짜를 선택하세요 (입실: '+ci+')';
+  const confirmBtn=ci&&co?`<button class="cal-confirm" onclick="_calConfirm()">확인 (${ci} → ${co})</button>`:'';
+  const el=document.createElement('div');
+  el.id='_calModal';el.className='cal-ov';
+  el.onclick=e=>{if(e.target===el)el.remove();};
+  el.innerHTML=`<div class="cal-box">
+    <div class="cal-top">
+      <button class="cal-nav" onclick="_calNav(-1)">‹</button>
+      <span class="cal-title">${y}년 ${_MN[m]}</span>
+      <button class="cal-nav" onclick="_calNav(1)">›</button>
+    </div>
+    <div class="cal-hint">${hint}</div>
+    <div class="cal-grid">${cells}</div>
+    <div class="cal-actions">${confirmBtn}<button class="cal-cancel" onclick="document.getElementById('_calModal').remove()">취소</button></div>
+  </div>`;
+  document.body.appendChild(el);
+}
+function _pickDate(ds){
+  if(_cal.step==='ci'){
+    _cal.ci=ds;_cal.co=null;_cal.step='co';
+  } else {
+    if(ds<=_cal.ci){_cal.ci=ds;_cal.co=null;_cal.step='co';}
+    else{_cal.co=ds;_calConfirm();return;}
+  }
+  _renderCal();
+}
+function _calConfirm(){
+  document.getElementById('v_checkin').value=_cal.ci||'';
+  document.getElementById('v_checkout').value=_cal.co||'';
+  _updateDateDisplay();
+  onDateChange();
+  const m=document.getElementById('_calModal');if(m)m.remove();
+}
+function _calNav(dir){
+  _cal.m+=dir;
+  if(_cal.m<0){_cal.m=11;_cal.y--;}
+  if(_cal.m>11){_cal.m=0;_cal.y++;}
+  _renderCal();
+}
+function _dateParts(ds){
+  if(!ds)return null;
+  const dow=new Date(ds+'T00:00:00').getDay();
+  const dNames=['일','월','화','수','목','금','토'];
+  const isWe=dow===5||dow===6;const isSun=dow===0;
+  const tag=isWe?'주말':isSun?'일요일':'주중';
+  const color=isWe?'#C05A1F':isSun?'#EF4444':'#8E8E93';
+  const [,mm,dd]=ds.split('-');
+  return{date:`${mm}.${dd}`,dow:dNames[dow],tag,color};
+}
+function _updateDateDisplay(){
+  const ci=document.getElementById('v_checkin').value;
+  const co=document.getElementById('v_checkout').value;
+  const btn=document.getElementById('dateRangeBtn');
+  if(!btn)return;
+  if(ci&&co){
+    const n=Math.round((new Date(co)-new Date(ci))/86400000);
+    const cp=_dateParts(ci);const cop=_dateParts(co);
+    btn.innerHTML=`
+      <div class="drb-side ci">
+        <span class="drb-label">📅 입실</span>
+        <span class="drb-date">${cp.date}</span>
+        <span class="drb-sub">${cp.dow}요일 · <span style="color:${cp.color};font-weight:600">${cp.tag}</span></span>
+      </div>
+      <div class="drb-mid">
+        <span class="drb-arrow">→</span>
+        <span class="drb-nights">${n}박</span>
+      </div>
+      <div class="drb-side">
+        <span class="drb-label">🚪 퇴실</span>
+        <span class="drb-date">${cop.date}</span>
+        <span class="drb-sub">${cop.dow}요일 · <span style="color:${cop.color};font-weight:600">${cop.tag}</span></span>
+      </div>`;
+  } else if(ci){
+    const cp=_dateParts(ci);
+    btn.innerHTML=`
+      <div class="drb-side ci">
+        <span class="drb-label">📅 입실</span>
+        <span class="drb-date">${cp.date}</span>
+        <span class="drb-sub">${cp.dow}요일 · <span style="color:${cp.color};font-weight:600">${cp.tag}</span></span>
+      </div>
+      <div class="drb-mid"><span class="drb-arrow">→</span></div>
+      <div class="drb-side">
+        <span class="drb-label">🚪 퇴실</span>
+        <span class="drb-date" style="color:#C7C7CC;font-size:13px;">미선택</span>
+        <span class="drb-sub"></span>
+      </div>`;
+  } else {
+    btn.innerHTML=`<div class="drb-placeholder">📅 날짜를 선택하세요</div>`;
+  }
+}
+
+async function forceUpdate(){
+  if(!confirm('캐시를 삭제하고 최신버전으로 업데이트할까요?\n(저장된 데이터는 유지됩니다)'))return;
+  const keys=await caches.keys();
+  for(const k of keys)await caches.delete(k);
+  location.reload(true);
+}
+function resetAllData(){
+  showConfirmModal(
+    '⚠️ 데이터 초기화',
+    '모든 설정, 템플릿, 객실 정보, 손님 목록이 삭제됩니다.\n정말 초기화할까요?',
+    ()=>{
+      [SK_TPL,SK_SET,SK_PER,SK_ROOMS,SK_GUESTS].forEach(k=>localStorage.removeItem(k));
+      location.reload();
+    },
+    null,'초기화','취소'
+  );
+}
+function openSettings(){
+  applySettingsToUI();renderPeriods();
+  document.getElementById('setOverlay').classList.add('open');
+  document.getElementById('setPanel').classList.add('open');
+}
+function closeSettings(){
+  document.getElementById('setOverlay').classList.remove('open');
+  document.getElementById('setPanel').classList.remove('open');
+}
+function saveSettings(){
+  const dr=parseInt(document.getElementById('cfg_default_room')?.value)||0;
+  settings={
+    name:document.getElementById('cfg_name').value.trim(),
+    addr:document.getElementById('cfg_addr').value.trim(),
+    account:document.getElementById('cfg_account').value.trim(),
+    wifi:document.getElementById('cfg_wifi').value.trim(),
+    door:document.getElementById('cfg_door').value.trim(),
+    door_use_phone:document.getElementById('chk_door_phone').classList.contains('on'),
+    extra_pp:document.getElementById('cfg_extra_pp').value.trim(),
+    child_fee_on:document.getElementById('chk_child_fee').classList.contains('on'),
+    child_pp:document.getElementById('cfg_child_pp').value.trim(),
+    dog_allow:document.getElementById('chk_dog_allow').classList.contains('on'),
+    dog_max:document.getElementById('cfg_dog_max').value.trim(),
+    dog_pp:document.getElementById('cfg_dog_pp').value.trim(),
+    dog_fee_type:document.getElementById('cfg_dog_fee_type').value,
+    bbq_allow:document.getElementById('chk_bbq_allow').classList.contains('on'),
+    bbq_price:document.getElementById('cfg_bbq_price').value.trim(),
+    bbq_billing:document.getElementById('cfg_bbq_billing').value,
+    default_room:dr,
+  };
+  saveSettingsStorage();
+  currentRoomIdx=Math.min(dr,rooms.length-1);
+  const h=document.getElementById('hdrTitle');if(h&&settings.name)h.textContent=`📱 StayMsg (${settings.name})`;
+  updateGuestSelect();updateDogRow();updateBbqRow();
+  renderRoomSelector();
+  closeSettings();
+  toast('설정이 저장됐어요 ✓');
+}
+function toggleDoor(){
+  document.getElementById('chk_door_phone').classList.toggle('on');
+  updateDoorHint();
+}
+function updateDoorHint(){
+  const chk=document.getElementById('chk_door_phone');
+  const hint=document.getElementById('door_hint');
+  const inp=document.getElementById('cfg_door');
+  if(!chk||!hint||!inp)return;
+  const on=chk.classList.contains('on');
+  if(on){
+    const ph=(document.getElementById('v_phone')?.value||'').replace(/\D/g,'');
+    const l4=ph.slice(-4);
+    hint.textContent=l4?`현재 손님 전번 뒷 4자리: ${l4}# 으로 자동 적용돼요`:'연락처 입력 시 뒷 4자리가 비밀번호가 돼요';
+    inp.disabled=true;inp.style.opacity='0.4';
+  }else{hint.textContent='';inp.disabled=false;inp.style.opacity='1';}
+}
+
+/* =============================================
+   ROOMS
+============================================= */
+function renderRoomSelector(){
+  const el=document.getElementById('roomSelector');
+  if(!el)return;
+  if(rooms.length<=1){el.style.display='none';return;}
+  el.style.cssText='display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:6px 14px 2px;background:white;border-bottom:1px solid #E5E5EA;width:100%;';
+  el.innerHTML='<div style="display:flex;gap:7px;padding:2px 0 4px;flex-wrap:nowrap;min-width:fit-content;">'+rooms.map((r,i)=>{
+    const active=i===currentRoomIdx;
+    const s=active
+      ?'padding:8px 18px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:#FF6B4A;color:white;white-space:nowrap;font-family:sans-serif;flex-shrink:0;'
+      :'padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid #C7C7CC;background:#E5E5EA;color:#3a3a3c;white-space:nowrap;font-family:sans-serif;flex-shrink:0;';
+    return`<button style="${s}" onclick="selectRoom(${i})">${r.name||'객실 '+(i+1)}</button>`;
+  }).join('')+'</div>';
+}
+function selectRoom(idx){
+  currentRoomIdx=idx;
+  dogCount=0;
+  const el=document.getElementById('dog_count_display');if(el)el.textContent=0;
+  const bbq=document.getElementById('chk_bbq');if(bbq)bbq.classList.remove('on');
+  renderRoomSelector();
+  updateGuestSelect();updateDogRow();updateBbqRow();
+  autoFillPrice();
+}
+function renderRoomList(){
+  const el=document.getElementById('roomList');
+  if(!el)return;
+  if(!rooms.length){el.innerHTML='<p style="font-size:12px;color:var(--ink-light);padding:4px 0 8px;text-align:center;">객실을 추가해 주세요</p>';return;}
+  el.innerHTML=rooms.map((r,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--cream);border:1px solid var(--border);border-radius:8px;margin-bottom:7px;cursor:pointer;" onclick="openRoomModal(${i})">
+      <span style="flex:1;font-size:13px;font-weight:500;">${r.name||'객실 '+(i+1)}</span>
+      <span style="font-size:11px;color:var(--ink-light);">${r.pw?parseNum(r.pw).toLocaleString('ko-KR')+'원~':'미설정'}</span>
+      <span style="font-size:16px;color:var(--ink-light);">›</span>
+    </div>`).join('');
+  const sel=document.getElementById('cfg_default_room');
+  if(sel)sel.innerHTML=rooms.map((r,i)=>`<option value="${i}"${i===(settings.default_room||0)?' selected':''}>${r.name||'객실 '+(i+1)}</option>`).join('');
+}
+function openRoomModal(idx){
+  document.getElementById('rm_idx').value=idx;
+  const isNew=idx===-1;
+  document.getElementById('roomModalTitle').textContent=isNew?'🛏️ 객실 추가':'🛏️ 객실 설정';
+  document.getElementById('rmDelBtn').style.display=isNew?'none':'';
+  const r=isNew?{name:'',base_guests:'',max_guests:'',pw:'',pwe:'',ph:'',disc_nights:'2',disc_type:'pct',disc_val:'',disc_from_2nd:false,specialPrices:{}}:rooms[idx];
+  ['rm_name','rm_base_guests','rm_max_guests','rm_pw','rm_pwe','rm_ph','rm_disc_nights','rm_disc_val'].forEach(id=>{
+    const key=id.replace('rm_','');
+    const el=document.getElementById(id);
+    if(el)el.value=r[key]||'';
+  });
+  document.getElementById('rm_disc_type').value=r.disc_type||'pct';
+  const cd=document.getElementById('rm_chk_disc_from2');
+  if(cd){r.disc_from_2nd?cd.classList.add('on'):cd.classList.remove('on');}
+  updateRmDiscUI();
+  // 특별기간 요금 섹션
+  const sp=r.specialPrices||{};
+  const spSec=document.getElementById('rm_special_price_section');
+  const spEl=document.getElementById('rm_special_prices');
+  if(periods.length){
+    spSec.style.display='';
+    spEl.innerHTML=periods.map(p=>{
+      const m=PT[p.type]||{label:p.type,color:'#888'};
+      const name=p.label||m.label;
+      const raw=sp[p.id]||{};
+      const vPw=typeof raw==='object'?raw.pw||'':(typeof raw==='string'?raw:'');
+      const vPwe=typeof raw==='object'?raw.pwe||'':'';
+      return `<div style="margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          <span class="period-badge" style="background:${m.color}">${name}</span>
+          <span style="font-size:11px;color:var(--ink-light);">${fmtDate(p.start)} ~ ${fmtDate(p.end)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div><div style="font-size:10px;color:var(--ink-light);margin-bottom:3px;">주중 (월~목)</div>
+            <div class="p-inp-w"><input type="tel" id="rm_sp_${p.id}_pw" value="${vPw}" placeholder="미설정" oninput="fmtP(this)"><span>원</span></div></div>
+          <div><div style="font-size:10px;color:var(--ink-light);margin-bottom:3px;">주말 (금·토, 미입력 시 주중 적용)</div>
+            <div class="p-inp-w"><input type="tel" id="rm_sp_${p.id}_pwe" value="${vPwe}" placeholder="주중과 동일" oninput="fmtP(this)"><span>원</span></div></div>
+        </div>
+      </div>`;
+    }).join('');
+  }else{
+    spSec.style.display='none';
+  }
+  document.getElementById('roomModalOv').classList.add('open');
+  document.getElementById('roomModal').classList.add('open');
+}
+function closeRoomModal(){
+  document.getElementById('roomModalOv').classList.remove('open');
+  document.getElementById('roomModal').classList.remove('open');
+}
+function saveRoomModal(){
+  const idx=parseInt(document.getElementById('rm_idx').value);
+  const isNew=idx===-1;
+  const specialPrices={};
+  periods.forEach(p=>{
+    const pw=(document.getElementById('rm_sp_'+p.id+'_pw')?.value||'').trim();
+    const pwe=(document.getElementById('rm_sp_'+p.id+'_pwe')?.value||'').trim();
+    if(pw||pwe)specialPrices[p.id]={pw,pwe};
+  });
+  const r={
+    id:isNew?'room_'+Date.now():(rooms[idx]&&rooms[idx].id)||'room_'+Date.now(),
+    name:document.getElementById('rm_name').value.trim()||(isNew?'객실 '+(rooms.length+1):'객실 '+(idx+1)),
+    base_guests:document.getElementById('rm_base_guests').value.trim(),
+    max_guests:document.getElementById('rm_max_guests').value.trim(),
+    pw:document.getElementById('rm_pw').value.trim(),
+    pwe:document.getElementById('rm_pwe').value.trim(),
+    ph:document.getElementById('rm_ph').value.trim(),
+    disc_nights:document.getElementById('rm_disc_nights').value.trim()||'2',
+    disc_type:document.getElementById('rm_disc_type').value,
+    disc_val:document.getElementById('rm_disc_val').value.trim(),
+    disc_from_2nd:document.getElementById('rm_chk_disc_from2').classList.contains('on'),
+    specialPrices,
+  };
+  if(isNew)rooms.push(r); else rooms[idx]=r;
+  saveRoomsStorage();
+  if(currentRoomIdx>=rooms.length)currentRoomIdx=rooms.length-1;
+  closeRoomModal();
+  renderRoomList();renderRoomSelector();
+  updateGuestSelect();updateDogRow();updateBbqRow();
+  toast('객실 정보가 저장됐어요 ✓');
+}
+function deleteRoomFromModal(){
+  const idx=parseInt(document.getElementById('rm_idx').value);
+  if(idx<0)return;
+  if(rooms.length<=1){alert('마지막 객실은 삭제할 수 없어요.');return;}
+  if(!confirm('이 객실을 삭제할까요?'))return;
+  rooms.splice(idx,1);
+  saveRoomsStorage();
+  if(currentRoomIdx>=rooms.length)currentRoomIdx=rooms.length-1;
+  closeRoomModal();
+  renderRoomList();renderRoomSelector();
+  toast('객실이 삭제됐어요');
+}
+
+/* =============================================
+   PERIODS
+============================================= */
+function renderPeriods(){
+  const el=document.getElementById('periodList');
+  if(!periods.length){el.innerHTML='<p style="font-size:12px;color:var(--ink-light);padding:8px 0 4px;text-align:center;">아직 특별 기간이 없어요<br><small>성수기·준성수기·공휴일 등을 추가해 보세요</small></p>';return;}
+  const sorted=[...periods].sort((a,b)=>a.start.localeCompare(b.start));
+  el.innerHTML=sorted.map(p=>{
+    const m=PT[p.type]||{label:p.type,color:'#888'};
+    const name=p.label||m.label;
+    const s=fmtDate(p.start);const e=fmtDate(p.end);
+    return `<div class="period-item">
+      <span class="period-badge" style="background:${m.color}">${name}</span>
+      <span class="period-dates">${s} ~ ${e}</span>
+      <span class="period-price" style="font-size:10px;color:var(--ink-light);">객실별 요금</span>
+      <button class="period-del" onclick="deletePeriod('${p.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+function openPeriodForm(){
+  document.getElementById('periodFormWrap').style.display='block';
+  document.getElementById('pf_label').value='';
+  document.getElementById('pf_start').value='';
+  document.getElementById('pf_end').value='';
+}
+function closePeriodForm(){document.getElementById('periodFormWrap').style.display='none';}
+function savePeriod(){
+  const type=document.getElementById('pf_type').value;
+  const start=document.getElementById('pf_start').value;
+  const end=document.getElementById('pf_end').value;
+  const label=document.getElementById('pf_label').value.trim();
+  if(!start||!end){alert('시작일과 종료일을 입력해 주세요.');return;}
+  if(start>end){alert('종료일이 시작일보다 빨라요.');return;}
+  periods.push({id:Date.now().toString(),type,label,start,end});
+  savePeriodsStorage();closePeriodForm();renderPeriods();
+  toast('특별 기간이 추가됐어요 ✓');
+}
+function deletePeriod(id){
+  if(!confirm('이 기간을 삭제할까요?'))return;
+  periods=periods.filter(p=>p.id!==id);
+  savePeriodsStorage();renderPeriods();toast('삭제됐어요');
+}
+
+/* =============================================
+   TOAST
+============================================= */
+let toastT=null;
+function toast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  if(toastT)clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+/* =============================================
+   INIT
+============================================= */
+loadAll();
+buildTabs();
+renderStage();
+updateGuestSelect();
+updateDogRow();updateBbqRow();
+renderRoomSelector();
+if(settings.name)document.getElementById('hdrTitle').textContent=`📱 StayMsg (${settings.name})`;
+// 입실 최소날짜 = 오늘, 초기 퇴실 min 설정
+(()=>{const today=new Date().toISOString().slice(0,10);const ci=document.getElementById('v_checkin');const co=document.getElementById('v_checkout');ci.min=today;const ciVal=ci.value;if(ciVal){const next=new Date(ciVal+'T00:00:00');next.setDate(next.getDate()+1);co.min=next.toISOString().slice(0,10);}else{co.min=today;}})();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+
+</script>
+</body>
+</html>
