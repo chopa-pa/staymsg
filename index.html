@@ -158,6 +158,7 @@ header p{font-size:10px;color:var(--ink-light);margin-top:2px;}
 .wd-lbl{color:#8E8E93;}
 .is-desktop .date-ico{display:none;}
 .is-mobile .var-grid{grid-template-columns:1fr;}
+.vi-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;grid-column:1/-1;}
 .cal-actions{display:flex;gap:8px;margin-top:16px;}
 .cal-confirm{flex:1;padding:13px;background:var(--accent);color:white;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
 .cal-cancel{padding:13px 18px;background:var(--cream);border:none;border-radius:14px;font-size:14px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;color:var(--ink-light);}
@@ -343,16 +344,18 @@ input{text-overflow:ellipsis;}
         <input type="hidden" id="v_checkin">
         <input type="hidden" id="v_checkout">
       </div>
-      <div class="vi">
-        <label>총인원</label>
-        <select id="v_guests" onchange="renderAll();autoFillPrice()">
-          <option value="">선택</option>
-          <option>1명</option><option>2명</option><option>3명</option><option>4명</option>
-          <option>5명</option><option>6명</option><option>7명</option><option>8명</option>
-          <option>9명</option><option>10명</option>
-        </select>
+      <div class="vi-row2">
+        <div class="vi">
+          <label>총인원</label>
+          <select id="v_guests" onchange="renderAll();autoFillPrice()">
+            <option value="">선택</option>
+            <option>1명</option><option>2명</option><option>3명</option><option>4명</option>
+            <option>5명</option><option>6명</option><option>7명</option><option>8명</option>
+            <option>9명</option><option>10명</option>
+          </select>
+        </div>
+        <div class="vi"><label>숙박 금액</label><input type="tel" id="v_price" placeholder="자동계산 또는 직접 입력" oninput="fmtPrice(this)"></div>
       </div>
-      <div class="vi"><label>숙박 금액</label><input type="tel" id="v_price" placeholder="자동계산 또는 직접 입력" oninput="fmtPrice(this)"></div>
     </div>
     <!-- 체크박스 -->
     <div class="check-row">
@@ -531,8 +534,14 @@ input{text-overflow:ellipsis;}
               </select>
             </div>
             <div class="pf-item"><label>기간 이름 (선택)</label><input type="text" id="pf_label" placeholder="예시: 여름 성수기"></div>
-            <div class="pf-item"><label>시작일</label><input type="date" id="pf_start"></div>
-            <div class="pf-item"><label>종료일</label><input type="date" id="pf_end"></div>
+            <div class="pf-item" style="grid-column:1/-1;">
+              <label>기간 선택</label>
+              <div class="date-range-btn" id="pfDateBtn" onclick="openPeriodDatePicker()" style="background:white;">
+                <div class="drb-placeholder" id="pfDatePlaceholder">📅 시작일 · 종료일 선택</div>
+              </div>
+              <input type="hidden" id="pf_start">
+              <input type="hidden" id="pf_end">
+            </div>
           </div>
           <div class="pf-actions">
             <button class="btn btn-save2" onclick="savePeriod()" style="flex:1;padding:10px;">추가하기</button>
@@ -1853,8 +1862,111 @@ function openPeriodForm(){
   document.getElementById('pf_label').value='';
   document.getElementById('pf_start').value='';
   document.getElementById('pf_end').value='';
+  _pfUpdateBtn();
 }
 function closePeriodForm(){document.getElementById('periodFormWrap').style.display='none';}
+
+let _pfCal={ci:null,co:null,step:'ci',y:0,m:0};
+function openPeriodDatePicker(){
+  const today=new Date();
+  _pfCal.y=today.getFullYear();_pfCal.m=today.getMonth();
+  _pfCal.ci=document.getElementById('pf_start').value||null;
+  _pfCal.co=document.getElementById('pf_end').value||null;
+  _pfCal.step='ci';
+  _pfRenderCal();
+}
+function _pfRenderCal(){
+  const old=document.getElementById('_pfCalModal');if(old)old.remove();
+  const {y,m,ci,co,step}=_pfCal;
+  const today=new Date().toISOString().slice(0,10);
+  const firstDow=new Date(y,m,1).getDay();
+  const daysInM=new Date(y,m+1,0).getDate();
+  let cells='';
+  ['일','월','화','수','목','금','토'].forEach((d,i)=>{
+    cells+=`<div class="cal-dow" style="${i===0?'color:#EF4444':i===6?'color:#3B82F6':''}">${d}</div>`;
+  });
+  for(let i=0;i<firstDow;i++)cells+=`<div></div>`;
+  for(let d=1;d<=daysInM;d++){
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow=new Date(ds+'T00:00:00').getDay();
+    const isWe=dow===5||dow===6;const isSun=dow===0;
+    const isToday=ds===today;
+    const isCi=ds===ci;const isCo=ds===co;
+    const inR=ci&&co&&ds>ci&&ds<co;
+    let cls='cal-day';
+    if(isCi)cls+=' cal-sel cal-ci';
+    else if(isCo)cls+=' cal-sel cal-co';
+    else if(inR)cls+=' cal-range';
+    if(isToday&&!isCi&&!isCo)cls+=' cal-today';
+    const lbl=isCi?'<small>시작</small>':isCo?'<small>종료</small>'
+      :isToday?'<small style="color:var(--accent)">오늘</small>'
+      :isWe?'<small class="we-lbl">주말</small>'
+      :isSun?'<small class="su-lbl">일</small>'
+      :'<small class="wd-lbl">주중</small>';
+    cells+=`<div class="${cls}" onclick="_pfPickDate('${ds}')"><span>${d}</span>${lbl}</div>`;
+  }
+  const hint=step==='ci'?'시작일을 선택하세요':'종료일을 선택하세요 (시작: '+ci+')';
+  const confirmBtn=ci&&co?`<button class="cal-confirm" onclick="_pfConfirm()">확인 (${ci} → ${co})</button>`:'';
+  const el=document.createElement('div');
+  el.id='_pfCalModal';el.className='cal-ov';
+  el.onclick=e=>{if(e.target===el)el.remove();};
+  el.innerHTML=`<div class="cal-box">
+    <div class="cal-top">
+      <button class="cal-nav" onclick="_pfCalNav(-1)">‹</button>
+      <span class="cal-title">${y}년 ${_MN[m]}</span>
+      <button class="cal-nav" onclick="_pfCalNav(1)">›</button>
+    </div>
+    <div class="cal-hint">${hint}</div>
+    <div class="cal-grid">${cells}</div>
+    <div class="cal-actions">${confirmBtn}<button class="cal-cancel" onclick="document.getElementById('_pfCalModal').remove()">취소</button></div>
+  </div>`;
+  document.body.appendChild(el);
+}
+function _pfPickDate(ds){
+  if(_pfCal.step==='ci'){
+    _pfCal.ci=ds;_pfCal.co=null;_pfCal.step='co';
+  } else {
+    if(ds<_pfCal.ci){_pfCal.ci=ds;_pfCal.co=null;_pfCal.step='co';}
+    else{_pfCal.co=ds;_pfConfirm();return;}
+  }
+  _pfRenderCal();
+}
+function _pfConfirm(){
+  document.getElementById('pf_start').value=_pfCal.ci||'';
+  document.getElementById('pf_end').value=_pfCal.co||'';
+  _pfUpdateBtn();
+  const m=document.getElementById('_pfCalModal');if(m)m.remove();
+}
+function _pfCalNav(dir){
+  _pfCal.m+=dir;
+  if(_pfCal.m<0){_pfCal.m=11;_pfCal.y--;}
+  if(_pfCal.m>11){_pfCal.m=0;_pfCal.y++;}
+  _pfRenderCal();
+}
+function _pfUpdateBtn(){
+  const ci=document.getElementById('pf_start').value;
+  const co=document.getElementById('pf_end').value;
+  const btn=document.getElementById('pfDateBtn');
+  if(!btn)return;
+  if(ci&&co){
+    const cp=_dateParts(ci);const cop=_dateParts(co);
+    const n=Math.round((new Date(co)-new Date(ci))/86400000)+1;
+    btn.innerHTML=`
+      <div class="drb-side ci">
+        <span class="drb-label">📅 시작일</span>
+        <span class="drb-date">${cp.date}</span>
+        <span class="drb-sub">${cp.dow}요일 · <span style="color:${cp.color};font-weight:600">${cp.tag}</span></span>
+      </div>
+      <div class="drb-mid"><span class="drb-arrow">→</span><span class="drb-nights">${n}일</span></div>
+      <div class="drb-side">
+        <span class="drb-label">📅 종료일</span>
+        <span class="drb-date">${cop.date}</span>
+        <span class="drb-sub">${cop.dow}요일 · <span style="color:${cop.color};font-weight:600">${cop.tag}</span></span>
+      </div>`;
+  } else {
+    btn.innerHTML=`<div class="drb-placeholder">📅 시작일 · 종료일 선택</div>`;
+  }
+}
 function savePeriod(){
   const type=document.getElementById('pf_type').value;
   const start=document.getElementById('pf_start').value;
