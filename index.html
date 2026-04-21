@@ -3219,7 +3219,7 @@ function _pinKey(d){
   _updateDots();
   if(_pinBuf.length===4){
     setTimeout(()=>{
-      if(_pinMode==='unlock') _pinVerify();
+      if(_pinMode==='unlock'||_pinMode==='admin') _pinVerify();
       else if(_pinMode==='set') _pinSetStep();
     },120);
   }
