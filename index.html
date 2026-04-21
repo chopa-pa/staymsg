@@ -1763,6 +1763,7 @@ function _goMsgFromRes(resId,ds){
   const stageIdx=ds===r.ci?0:ds===r.co?2:1;
   goPage('msg');
   switchStage(stageIdx);
+  window.scrollTo({top:0,behavior:'instant'});
 }
 function _schedItemClick(id,ci){
   if(ci){
