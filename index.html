@@ -467,7 +467,10 @@ input{text-overflow:ellipsis;}
 <div class="page active" id="page-msg">
   <div id="roomSelector" style="display:none;"></div>
   <div class="var-panel">
-    <h3>✏️ 손님 정보 입력</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <h3 style="margin:0;">✏️ 손님 정보 입력</h3>
+      <button onclick="clearGuestForm()" style="background:none;border:1px solid #C7C7CC;border-radius:8px;padding:4px 10px;font-size:11px;color:var(--ink-light);cursor:pointer;">지우기</button>
+    </div>
     <div class="var-grid">
       <div class="vi"><label>손님 이름</label>
         <div class="guest-wrap">
@@ -2442,6 +2445,21 @@ function selectGuestStay(gi,si){
   _updateDateDisplay();onDateChange();renderAll();
 }
 function selectGuest(idx){selectGuestStay(idx,-1);}
+function clearGuestForm(){
+  document.getElementById('v_name').value='';
+  document.getElementById('v_phone').value='';
+  document.getElementById('v_checkin').value='';
+  document.getElementById('v_checkout').value='';
+  document.getElementById('v_guests').value='';
+  document.getElementById('v_price').value='';
+  childCount=0;dogCount=0;
+  const cd=document.getElementById('child_count_display');if(cd)cd.textContent=0;
+  const dd=document.getElementById('dog_count_display');if(dd)dd.textContent=0;
+  const bbq=document.getElementById('chk_bbq');if(bbq)bbq.classList.remove('on');
+  _cal.ci=null;_cal.co=null;
+  _updateDateDisplay();
+  renderAll();
+}
 function saveGuest(){
   const name=document.getElementById('v_name').value.trim();
   const phone=document.getElementById('v_phone').value.trim();
