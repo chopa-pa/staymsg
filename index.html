@@ -9,13 +9,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>StayMsg</title>
+<title>stay_msg_pro</title>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#2C2416">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="StayMsg">
+<meta name="apple-mobile-web-app-title" content="stay_msg_pro">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -408,7 +408,7 @@ input{text-overflow:ellipsis;}
 <header>
   <div class="hdr-row">
     <div>
-      <h1 id="hdrTitle">📱 StayMsg (스테이 솔숲)</h1>
+      <h1 id="hdrTitle">📱 stay_msg_pro (스테이 솔숲)</h1>
       <p>예약 단계별 문자 템플릿 · 자동 요금 계산 · 간편 예약 확인 <span style="color:#C7C7CC;font-size:9px;margin-left:4px;">v1.9</span></p>
     </div>
     <div style="display:flex;align-items:center;gap:4px;">
@@ -2789,7 +2789,7 @@ function saveSettings(){
   };
   saveSettingsStorage();
   currentRoomIdx=Math.min(dr,rooms.length-1);
-  const h=document.getElementById('hdrTitle');if(h&&settings.name)h.textContent=`📱 StayMsg (${settings.name})`;
+  const h=document.getElementById('hdrTitle');if(h&&settings.name)h.textContent=`📱 stay_msg_pro (${settings.name})`;
   updateGuestSelect();updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();res_updateDogRow();res_updateBbqRow();
   renderRoomSelector();
   closeSettings();
@@ -3156,7 +3156,7 @@ renderStage();
 updateGuestSelect();
 updateDogRow();updateBbqRow();p_updateDogRow();p_updateBbqRow();res_updateDogRow();res_updateBbqRow();
 renderRoomSelector();
-if(settings.name)document.getElementById('hdrTitle').textContent=`📱 StayMsg (${settings.name})`;
+if(settings.name)document.getElementById('hdrTitle').textContent=`📱 stay_msg_pro (${settings.name})`;
 loadFormState();
 renderAll();
 // 입실 최소날짜 = 오늘, 초기 퇴실 min 설정

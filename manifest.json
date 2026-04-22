@@ -1,6 +1,6 @@
 {
-  "name": "StayMsg",
-  "short_name": "StayMsg",
+  "name": "stay_msg_pro",
+  "short_name": "stay_msg_pro",
   "description": "민박 손님 단계별 문자 템플릿 관리 앱",
   "start_url": "./index.html",
   "display": "standalone",
