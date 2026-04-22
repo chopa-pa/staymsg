@@ -2406,6 +2406,8 @@ function clearGuestForm(){
   const bbq=document.getElementById('chk_bbq');if(bbq)bbq.classList.remove('on');
   _cal.ci=null;_cal.co=null;
   _updateDateDisplay();
+  const pr=document.getElementById('priceResult');
+  if(pr){pr.style.display='none';pr.innerHTML='';}
   renderAll();
 }
 function saveGuest(){
