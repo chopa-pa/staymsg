@@ -1767,7 +1767,7 @@ function _goMsgFromRes(resId,ds){
   _updateDateDisplay();
   renderRoomSelector();
   updateDogRow();updateBbqRow();
-  const stageIdx=ds===r.ci?0:ds===r.co?2:1;
+  const stageIdx=ds===r.co?5:ds===r.ci?3:ds>r.ci&&ds<r.co?4:2;
   curStage=stageIdx;
   goPage('msg');
   document.querySelectorAll('.stab').forEach((t,j)=>t.classList.toggle('active',j===stageIdx));
