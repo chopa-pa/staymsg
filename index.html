@@ -400,52 +400,10 @@ input{text-overflow:ellipsis;}
 .price-page-panel{background:white;border:none;border-radius:20px;padding:16px;margin-bottom:14px;box-shadow:0 2px 12px var(--shadow);}
 .price-page-panel h3{font-size:12px;font-weight:700;color:var(--ink-light);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;}
 /* LOCK SCREEN */
-#lockScreen{position:fixed;inset:0;background:#fff;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;}
-.lock-logo{font-size:40px;margin-bottom:8px;}
-.lock-title{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:4px;}
-.lock-sub{font-size:13px;color:var(--ink-light);margin-bottom:36px;}
-.lock-dots{display:flex;gap:16px;margin-bottom:36px;}
-.lock-dot{width:16px;height:16px;border-radius:50%;border:2px solid #C7C7CC;background:transparent;transition:background .15s,border-color .15s;}
-.lock-dot.filled{background:var(--accent);border-color:var(--accent);}
-.lock-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:280px;}
-.lock-key{height:64px;border-radius:50%;border:none;background:#F2F2F7;font-size:24px;font-weight:500;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .1s;-webkit-tap-highlight-color:transparent;}
-.lock-key:active{background:#E5E5EA;}
-.lock-key.del{font-size:20px;background:transparent;}
-.lock-key.del:active{background:#F2F2F7;}
-.lock-err{color:#EF4444;font-size:13px;height:18px;margin-bottom:8px;text-align:center;}
-@keyframes lock-shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
-.lock-shake{animation:lock-shake .35s ease;}
 </style>
 </head>
 <body>
 
-<!-- 잠금 화면 -->
-<div id="lockScreen" style="display:none;">
-  <div class="lock-logo">🏠</div>
-  <div class="lock-title">StayMsg</div>
-  <div class="lock-sub" id="lockSub">비밀번호를 입력하세요</div>
-  <div class="lock-err" id="lockErr"></div>
-  <div class="lock-dots" id="lockDots">
-    <div class="lock-dot" id="ld0"></div>
-    <div class="lock-dot" id="ld1"></div>
-    <div class="lock-dot" id="ld2"></div>
-    <div class="lock-dot" id="ld3"></div>
-  </div>
-  <div class="lock-pad">
-    <button class="lock-key" onclick="_pinKey('1')">1</button>
-    <button class="lock-key" onclick="_pinKey('2')">2</button>
-    <button class="lock-key" onclick="_pinKey('3')">3</button>
-    <button class="lock-key" onclick="_pinKey('4')">4</button>
-    <button class="lock-key" onclick="_pinKey('5')">5</button>
-    <button class="lock-key" onclick="_pinKey('6')">6</button>
-    <button class="lock-key" onclick="_pinKey('7')">7</button>
-    <button class="lock-key" onclick="_pinKey('8')">8</button>
-    <button class="lock-key" onclick="_pinKey('9')">9</button>
-    <div></div>
-    <button class="lock-key" onclick="_pinKey('0')">0</button>
-    <button class="lock-key del" onclick="_pinDel()">⌫</button>
-  </div>
-</div>
 
 <header>
   <div class="hdr-row">
@@ -857,13 +815,6 @@ input{text-overflow:ellipsis;}
 
     <button class="btn-primary" onclick="saveSettings()">💾 설정 저장</button>
 
-    <div class="set-section" style="margin-top:14px;">
-      <div style="padding:14px 16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:12px;">🔒 앱 잠금 비밀번호</div>
-        <div style="font-size:12px;color:var(--ink-light);margin-bottom:10px;">관리자 인증 후 비밀번호를 변경할 수 있어요</div>
-        <button class="btn btn-dark" style="width:100%;" onclick="openPinSetup()">비밀번호 변경</button>
-      </div>
-    </div>
 
     <button class="btn btn-del" onclick="resetAllData()" style="width:100%;padding:13px;margin-top:10px;font-size:14px;border-radius:14px;">🗑️ 데이터 초기화</button>
 
@@ -3213,107 +3164,6 @@ if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 }
 
-/* =============================================
-   PIN LOCK
-============================================= */
-const SK_PIN='staymsg_pin';
-const ADMIN_PIN='7063';
-const DEFAULT_PIN='0079';
-let _pinBuf='',_pinMode='unlock',_pinStep=1,_pinNew='',_pinCallback=null;
-
-function _getPin(){return localStorage.getItem(SK_PIN)||DEFAULT_PIN;}
-
-function _initLock(){
-  document.getElementById('lockScreen').style.display='flex';
-  document.body.style.overflow='hidden';
-}
-
-function _pinKey(d){
-  if(_pinBuf.length>=4)return;
-  _pinBuf+=d;
-  _updateDots();
-  if(_pinBuf.length===4){
-    setTimeout(()=>{
-      if(_pinMode==='unlock'||_pinMode==='admin') _pinVerify();
-      else if(_pinMode==='set') _pinSetStep();
-    },120);
-  }
-}
-function _pinDel(){
-  _pinBuf=_pinBuf.slice(0,-1);
-  _updateDots();
-}
-function _updateDots(){
-  for(let i=0;i<4;i++){
-    const el=document.getElementById('ld'+i);
-    if(el)el.classList.toggle('filled',i<_pinBuf.length);
-  }
-}
-function _pinVerify(){
-  const isAdmin=_pinBuf===ADMIN_PIN;
-  const correct=isAdmin||(_pinMode!=='admin'&&_pinBuf===_getPin());
-  if(correct){
-    if(_pinCallback){
-      const cb=_pinCallback;_pinCallback=null;
-      document.getElementById('lockScreen').style.display='none';
-      document.body.style.overflow='';
-      cb();
-    } else {
-      document.getElementById('lockScreen').style.display='none';
-      document.body.style.overflow='';
-      if(_pinMode==='unlock') clearGuestForm();
-    }
-  } else {
-    document.getElementById('lockErr').textContent='비밀번호가 틀렸어요';
-    document.getElementById('lockDots').classList.add('lock-shake');
-    setTimeout(()=>{
-      document.getElementById('lockDots').classList.remove('lock-shake');
-      document.getElementById('lockErr').textContent='';
-      _pinBuf='';_updateDots();
-    },400);
-  }
-}
-function _pinSetStep(){
-  if(_pinStep===1){
-    _pinNew=_pinBuf;_pinBuf='';_pinStep=2;
-    document.getElementById('lockSub').textContent='한 번 더 입력하세요';
-    _updateDots();
-  } else {
-    if(_pinBuf===_pinNew){
-      localStorage.setItem(SK_PIN,_pinNew);
-      _pinMode='unlock';_pinStep=1;_pinNew='';_pinBuf='';
-      document.getElementById('lockScreen').style.display='none';
-      document.body.style.overflow='';
-      toast('비밀번호가 변경됐어요 🔒');
-    } else {
-      document.getElementById('lockErr').textContent='숫자가 일치하지 않아요. 다시 시도하세요';
-      document.getElementById('lockDots').classList.add('lock-shake');
-      setTimeout(()=>{
-        document.getElementById('lockDots').classList.remove('lock-shake');
-        document.getElementById('lockErr').textContent='';
-        _pinBuf='';_pinStep=1;_pinNew='';
-        document.getElementById('lockSub').textContent='새 비밀번호 4자리를 입력하세요';
-        _updateDots();
-      },400);
-    }
-  }
-}
-function _openPinScreen(sub,mode,callback){
-  _pinMode=mode;_pinStep=1;_pinBuf='';_pinNew='';_pinCallback=callback||null;
-  document.getElementById('lockSub').textContent=sub;
-  document.getElementById('lockErr').textContent='';
-  _updateDots();
-  document.getElementById('lockScreen').style.display='flex';
-  document.body.style.overflow='hidden';
-}
-function openPinSetup(){
-  closeSettings();
-  _openPinScreen('관리자 비밀번호를 입력하세요','admin',()=>{
-    _openPinScreen('새 비밀번호 4자리를 입력하세요','set');
-  });
-}
-
-_initLock();
 
 </script>
 </body>
