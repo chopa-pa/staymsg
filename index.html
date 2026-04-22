@@ -818,6 +818,13 @@ input{text-overflow:ellipsis;}
 
     <button class="btn btn-del" onclick="resetAllData()" style="width:100%;padding:13px;margin-top:10px;font-size:14px;border-radius:14px;">🗑️ 데이터 초기화</button>
 
+    <div style="font-size:12px;font-weight:700;color:#8E8E93;letter-spacing:.05em;margin:20px 0 8px;">📲 데이터 동기화</div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="exportData()" style="flex:1;padding:13px;background:#f0f4ff;border:1.5px solid #c0d0ff;border-radius:14px;color:#3355cc;font-weight:700;font-size:14px;cursor:pointer;">📤 내보내기</button>
+      <button onclick="document.getElementById('importFile').click()" style="flex:1;padding:13px;background:#f0fff4;border:1.5px solid #b0e8c0;border-radius:14px;color:#226633;font-weight:700;font-size:14px;cursor:pointer;">📥 가져오기</button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(this)">
+
   </div>
 </div>
 
@@ -2735,6 +2742,34 @@ async function forceUpdate(){
   const keys=await caches.keys();
   for(const k of keys)await caches.delete(k);
   location.reload(true);
+}
+function exportData(){
+  const keys=[SK_TPL,SK_SET,SK_PER,SK_ROOMS,SK_GUESTS,SK_FORM,SK_RES];
+  const data={exported:new Date().toISOString()};
+  keys.forEach(k=>{try{data[k]=JSON.parse(localStorage.getItem(k)||'null');}catch(e){}});
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`stay_msg_pro_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  toast('내보내기 완료 📤');
+}
+function importData(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      const keys=[SK_TPL,SK_SET,SK_PER,SK_ROOMS,SK_GUESTS,SK_FORM,SK_RES];
+      keys.forEach(k=>{if(data[k]!=null)localStorage.setItem(k,JSON.stringify(data[k]));});
+      toast('가져오기 완료 ✅');
+      setTimeout(()=>location.reload(),800);
+    }catch(err){
+      toast('파일이 올바르지 않아요 ❌');
+    }
+    input.value='';
+  };
+  reader.readAsText(file);
 }
 function resetAllData(){
   showConfirmModal(
